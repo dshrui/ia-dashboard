@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IA Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#0f1f3d;--navy-mid:#1b2f52;--gold:#c9a84c;--gold-light:#f0d898;
+  --cream:#faf8f4;--white:#fff;--text:#1a1a2e;--text-mid:#4a5568;--text-light:#8896a7;
+  --border:#e2e8f0;--border-dark:#cbd5e0;
+  --green:#2d7a4f;--green-bg:#edf7f2;--orange:#b45309;--orange-bg:#fffbeb;
+  --r:10px;--rlg:16px;--sh:0 2px 12px rgba(15,31,61,.08);--shlg:0 8px 32px rgba(15,31,61,.14);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Outfit',sans-serif;background:var(--cream);color:var(--text);min-height:100vh;font-size:14px}
+
+/* AUTH */
+#auth{position:fixed;inset:0;background:var(--navy);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;z-index:999}
+.auth-logo{font-family:'DM Serif Display',serif;font-size:38px;color:var(--gold-light);text-align:center}
+.auth-tagline{font-size:11px;color:rgba(255,255,255,.35);letter-spacing:.14em;text-transform:uppercase;font-family:'DM Mono',monospace}
+.auth-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:var(--rlg);padding:32px 40px;display:flex;flex-direction:column;align-items:center;gap:20px;min-width:320px}
+.auth-card p{font-size:13px;color:rgba(255,255,255,.5);text-align:center;line-height:1.6;max-width:260px}
+.signin-btn{display:flex;align-items:center;gap:12px;padding:13px 24px;background:var(--white);border:none;border-radius:var(--r);font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;color:var(--navy);cursor:pointer;transition:all .2s;box-shadow:var(--shlg);width:100%;justify-content:center}
+.signin-btn:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(0,0,0,.35)}
+.signin-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+#auth-status{font-size:12px;color:rgba(255,255,255,.4);font-family:'DM Mono',monospace;min-height:18px;text-align:center}
+
+/* LAYOUT */
+.app{display:none;min-height:100vh}
+.app.ready{display:flex}
+.sidebar{width:256px;background:var(--navy);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100}
+.main{margin-left:256px;flex:1;display:flex;flex-direction:column;min-height:100vh}
+
+/* SIDEBAR */
+.sb-logo{padding:24px 20px 18px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sb-wordmark{font-family:'DM Serif Display',serif;font-size:17px;color:var(--gold-light)}
+.sb-sub{font-size:9px;color:rgba(255,255,255,.25);letter-spacing:.14em;text-transform:uppercase;font-family:'DM Mono',monospace;margin-top:3px}
+.sb-nav{padding:14px 10px;flex:1;overflow-y:auto}
+.nav-lbl{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.2);font-family:'DM Mono',monospace;padding:10px 10px 4px}
+.nav-btn{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;color:rgba(255,255,255,.5);cursor:pointer;transition:all .15s;font-size:13px;border:none;background:none;width:100%;text-align:left}
+.nav-btn:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.85)}
+.nav-btn.on{background:rgba(201,168,76,.15);color:var(--gold-light);font-weight:500}
+.sb-engs{padding:0 10px 8px;max-height:260px;overflow-y:auto}
+.eng-chip{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:8px;cursor:pointer;transition:all .15s;margin-bottom:2px}
+.eng-chip:hover{background:rgba(255,255,255,.07)}
+.eng-chip.on{background:rgba(201,168,76,.12)}
+.eng-name{font-size:12px;color:rgba(255,255,255,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+.eng-chip.on .eng-name{color:var(--gold-light)}
+.eng-pct{font-size:10px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.25)}
+.eng-chip.on .eng-pct{color:var(--gold)}
+.sb-foot{padding:14px 20px;border-top:1px solid rgba(255,255,255,.08)}
+.user-row{display:flex;align-items:center;gap:10px}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--navy-mid);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--gold-light);flex-shrink:0}
+.user-n{font-size:12px;color:rgba(255,255,255,.7);font-weight:500}
+.user-r{font-size:10px;color:rgba(255,255,255,.28)}
+
+/* TOPBAR */
+.topbar{background:var(--white);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.tb-title{font-family:'DM Serif Display',serif;font-size:19px;color:var(--navy)}
+.tb-sub{font-size:11px;color:var(--text-light);margin-top:1px}
+.tb-actions{display:flex;gap:8px;align-items:center}
+
+/* BUTTONS */
+.btn{padding:8px 15px;border-radius:var(--r);border:1px solid var(--border-dark);background:var(--white);color:var(--text);font-family:'Outfit',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{background:var(--cream);border-color:var(--navy)}
+.btn-navy{background:var(--navy);color:var(--white);border-color:var(--navy)}
+.btn-navy:hover{background:var(--navy-mid);border-color:var(--navy-mid)}
+.btn-gold{background:var(--gold);color:var(--navy);border-color:var(--gold);font-weight:600}
+.btn-gold:hover{background:var(--gold-light)}
+
+/* CONTENT */
+.content{padding:28px;flex:1}
+.view{display:none}
+.view.on{display:block}
+
+/* METRICS */
+.metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:20px}
+.mc{background:var(--white);border:1px solid var(--border);border-radius:var(--rlg);padding:18px;box-shadow:var(--sh)}
+.mc-lbl{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-light);font-family:'DM Mono',monospace;margin-bottom:6px}
+.mc-val{font-family:'DM Serif Display',serif;font-size:30px;color:var(--navy);line-height:1}
+.mc-val.gold{color:var(--gold)}
+.mc-val.green{color:var(--green)}
+.mc-val.orange{color:var(--orange)}
+
+/* PIPELINE */
+.pipeline{display:flex;align-items:center;background:var(--white);border:1px solid var(--border);border-radius:var(--rlg);padding:14px 20px;margin-bottom:20px;box-shadow:var(--sh);overflow-x:auto;gap:0}
+.pn{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:90px}
+.pdot{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;transition:all .2s}
+.pdot.ns{background:var(--cream);border:2px solid var(--border-dark);color:var(--text-light)}
+.pdot.ip{background:var(--orange-bg);border:2px solid var(--orange);color:var(--orange)}
+.pdot.dn{background:var(--green-bg);border:2px solid var(--green);color:var(--green)}
+.plbl{font-size:10px;color:var(--text-light);text-align:center;line-height:1.3;max-width:80px}
+.pline{flex:1;height:2px;background:var(--border);min-width:16px;margin-bottom:18px}
+.pline.dn{background:var(--green)}
+
+/* STEPS */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
+.sc{background:var(--white);border:1px solid var(--border);border-radius:var(--rlg);padding:18px;box-shadow:var(--sh);position:relative;overflow:hidden;transition:all .2s}
+.sc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--border);transition:background .2s}
+.sc.ip::before{background:var(--orange)}
+.sc.dn::before{background:var(--green)}
+.sc:hover{box-shadow:var(--shlg);transform:translateY(-1px)}
+.sc-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
+.sc-num{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;font-family:'DM Mono',monospace;flex-shrink:0}
+.sc-num.ns{background:var(--cream);color:var(--text-light)}
+.sc-num.ip{background:var(--orange-bg);color:var(--orange)}
+.sc-num.dn{background:var(--green-bg);color:var(--green)}
+.sc-badge{font-size:9px;padding:3px 8px;border-radius:20px;font-weight:500;font-family:'DM Mono',monospace}
+.sc-badge.ns{background:var(--cream);color:var(--text-light)}
+.sc-badge.ip{background:var(--orange-bg);color:var(--orange)}
+.sc-badge.dn{background:var(--green-bg);color:var(--green)}
+.sc-title{font-size:13px;font-weight:600;color:var(--navy);margin-bottom:5px;line-height:1.3}
+.sc-desc{font-size:12px;color:var(--text-mid);line-height:1.6;margin-bottom:12px}
+.sc-foot{display:flex;align-items:center;justify-content:space-between;padding-top:10px;border-top:1px solid var(--border)}
+.sc-dep{font-size:10px;color:var(--text-light);font-family:'DM Mono',monospace}
+.cycle-btn{font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--border-dark);background:var(--cream);color:var(--text-mid);cursor:pointer;font-family:'Outfit',sans-serif;transition:all .15s}
+.cycle-btn:hover{background:var(--navy);color:var(--white);border-color:var(--navy)}
+
+/* DETAILS PANEL */
+.panel{background:var(--white);border:1px solid var(--border);border-radius:var(--rlg);box-shadow:var(--sh);overflow:hidden;margin-bottom:20px}
+.ph{padding:16px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.ph-title{font-size:13px;font-weight:600;color:var(--navy)}
+.pb{padding:22px}
+.det-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.det-item .lbl{font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--text-light);margin-bottom:4px}
+.det-item .val{font-size:13px;color:var(--text)}
+
+/* PROMPT */
+.form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg.full{grid-column:1/-1}
+.flbl{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-light);font-family:'DM Mono',monospace}
+.finp{padding:8px 11px;border:1px solid var(--border-dark);border-radius:var(--r);font-family:'Outfit',sans-serif;font-size:13px;color:var(--text);background:var(--white);width:100%}
+.finp:focus{outline:none;border-color:var(--navy)}
+.step-pills{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:13px}
+.sp{padding:5px 13px;border-radius:20px;border:1px solid var(--border-dark);background:var(--white);font-size:12px;color:var(--text-mid);cursor:pointer;transition:all .15s;font-family:'Outfit',sans-serif}
+.sp:hover{border-color:var(--navy);color:var(--navy)}
+.sp.on{background:var(--navy);color:var(--white);border-color:var(--navy)}
+.prompt-out{background:var(--navy);border-radius:var(--rlg);padding:18px;font-family:'DM Mono',monospace;font-size:12px;color:rgba(240,216,152,.9);line-height:1.7;white-space:pre-wrap;min-height:90px;margin-bottom:12px}
+.copy-ok{font-size:12px;color:var(--green);opacity:0;transition:opacity .3s;font-family:'DM Mono',monospace}
+
+/* LOG */
+.log-tbl{width:100%;border-collapse:collapse}
+.log-tbl th{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-light);font-family:'DM Mono',monospace;font-weight:500;padding:10px 14px;border-bottom:1px solid var(--border);text-align:left;background:var(--cream)}
+.log-tbl td{padding:11px 14px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text-mid);vertical-align:top}
+.log-tbl tr:last-child td{border-bottom:none}
+.log-tbl tr:hover td{background:var(--cream)}
+
+/* MODAL */
+.modal-ov{position:fixed;inset:0;background:rgba(15,31,61,.6);z-index:200;display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+.modal-ov.open{display:flex}
+.modal{background:var(--white);border-radius:var(--rlg);box-shadow:var(--shlg);width:540px;max-width:95vw;max-height:90vh;overflow-y:auto}
+.mh{padding:22px 26px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.mh-title{font-family:'DM Serif Display',serif;font-size:19px;color:var(--navy)}
+.mclose{width:28px;height:28px;border:none;background:var(--cream);border-radius:7px;font-size:15px;cursor:pointer;color:var(--text-mid);display:flex;align-items:center;justify-content:center}
+.mb{padding:22px 26px}
+.mf{padding:14px 26px 22px;display:flex;gap:9px;justify-content:flex-end;border-top:1px solid var(--border)}
+.mfg{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.msec{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-light);font-family:'DM Mono',monospace;grid-column:1/-1;padding-top:8px;border-top:1px solid var(--border);margin-top:4px}
+
+/* TOAST */
+.toast{position:fixed;bottom:22px;right:22px;background:var(--navy);color:var(--white);padding:11px 18px;border-radius:var(--r);font-size:13px;box-shadow:var(--shlg);z-index:999;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none}
+.toast.ok{border-left:3px solid var(--green);opacity:1;transform:translateY(0)}
+.toast.err{border-left:3px solid #c53030;opacity:1;transform:translateY(0)}
+
+/* LOADING */
+.spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:var(--white);border-radius:50%;animation:spin .7s linear infinite}
+.spin.dark{border-color:rgba(15,31,61,.2);border-top-color:var(--navy)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ldo{position:fixed;inset:0;background:rgba(250,248,244,.85);z-index:150;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+.ldo.show{display:flex}
+.spin-lg{width:34px;height:34px;border:3px solid var(--border-dark);border-top-color:var(--navy);border-radius:50%;animation:spin .8s linear infinite}
+.ld-txt{font-family:'DM Mono',monospace;font-size:12px;color:var(--text-light)}
+
+/* EMPTY */
+.empty{text-align:center;padding:56px 24px;color:var(--text-light)}
+.empty h3{font-size:15px;color:var(--text-mid);font-weight:500;margin-bottom:7px}
+.empty p{font-size:13px;line-height:1.6;max-width:280px;margin:0 auto 18px}
+
+@media(max-width:900px){
+  .steps{grid-template-columns:1fr 1fr}
+  .metrics{grid-template-columns:repeat(3,1fr)}
+  .form-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div id="auth">
+  <div class="auth-logo">IA Dashboard</div>
+  <div class="auth-tagline">Engagement Management Suite</div>
+  <div class="auth-card">
+    <p>Sign in with your Google account to access your engagement data stored in Google Sheets.</p>
+    <button class="signin-btn" id="signin-btn" onclick="handleSignIn()">
+      <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Sign in with Google
+    </button>
+    <div id="auth-status">Initialising Google API...</div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div class="ldo" id="ldo"><div class="spin-lg"></div><div class="ld-txt" id="ld-txt">Loading...</div></div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- NEW ENGAGEMENT MODAL -->
+<div class="modal-ov" id="eng-modal">
+  <div class="modal">
+    <div class="mh"><div class="mh-title">New Engagement</div><button class="mclose" onclick="closeModal()">✕</button></div>
+    <div class="mb">
+      <div class="mfg">
+        <div class="fg"><label class="flbl">Client Name *</label><input class="finp" id="m-client" placeholder="e.g. Sunsuria Asas Sdn Bhd"></div>
+        <div class="fg"><label class="flbl">Client Code *</label><input class="finp" id="m-code" placeholder="e.g. SASA"></div>
+        <div class="fg"><label class="flbl">Engagement Type *</label><input class="finp" id="m-type" placeholder="e.g. Procurement Audit"></div>
+        <div class="fg"><label class="flbl">Financial Year / Period</label><input class="finp" id="m-period" placeholder="e.g. FY2024"></div>
+        <div class="msec">Scope</div>
+        <div class="fg"><label class="flbl">Subscope 1</label><input class="finp" id="m-s1" placeholder="e.g. Supplier Sourcing"></div>
+        <div class="fg"><label class="flbl">Subscope 2</label><input class="finp" id="m-s2" placeholder="e.g. Procurement Planning"></div>
+        <div class="fg"><label class="flbl">Subscope 3</label><input class="finp" id="m-s3" placeholder="e.g. Supplier Assessment"></div>
+        <div class="fg"><label class="flbl">Framework / Reference</label><input class="finp" id="m-fw" placeholder="e.g. MACC Act S17A"></div>
+        <div class="msec">Parameters</div>
+        <div class="fg"><label class="flbl">Testing Period</label><input class="finp" id="m-tp" placeholder="e.g. Jan–Dec 2024"></div>
+        <div class="fg"><label class="flbl">Risk Level</label><select class="finp" id="m-risk"><option value="">Select...</option><option>High</option><option>Medium</option><option>Low</option></select></div>
+        <div class="msec">Team</div>
+        <div class="fg"><label class="flbl">Senior Auditor (PIC)</label><input class="finp" id="m-pic" placeholder="e.g. Darren"></div>
+        <div class="fg"><label class="flbl">Team Members</label><input class="finp" id="m-team" placeholder="e.g. Ci Hang, Pei Ying"></div>
+        <div class="fg" style="grid-column:1/-1"><label class="flbl">Key Context</label><input class="finp" id="m-ctx" placeholder="e.g. CEO approval >RM500k, related party: Alunan Asas"></div>
+      </div>
+    </div>
+    <div class="mf"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn-gold btn" onclick="saveEngagement()">Save Engagement</button></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app" id="app">
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sb-logo"><div class="sb-wordmark">IA Dashboard</div><div class="sb-sub">Engagement Suite</div></div>
+    <div class="sb-nav">
+      <div class="nav-lbl">Views</div>
+      <button class="nav-btn on" onclick="switchView('overview',this)">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+        Overview
+      </button>
+      <button class="nav-btn" onclick="switchView('prompts',this)">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h8M2 12h10"/></svg>
+        Prompt Generator
+      </button>
+      <button class="nav-btn" onclick="switchView('log',this)">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1"/><path d="M5 6h6M5 9h4"/></svg>
+        Activity Log
+      </button>
+      <div class="nav-lbl" style="margin-top:14px">Engagements</div>
+      <div class="sb-engs" id="sb-engs"><div style="font-size:11px;color:rgba(255,255,255,.18);padding:6px 10px">No engagements yet</div></div>
+    </div>
+    <div class="sb-foot">
+      <div class="user-row">
+        <div class="avatar" id="u-av">D</div>
+        <div><div class="user-n" id="u-name">Darren</div><div class="user-r">Senior Auditor</div></div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div><div class="tb-title" id="tb-title">Overview</div><div class="tb-sub" id="tb-sub">Select or create an engagement</div></div>
+      <div class="tb-actions">
+        <button class="btn" onclick="loadData()">↺ Refresh</button>
+        <button class="btn-navy btn" onclick="openModal()">+ New Engagement</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- OVERVIEW -->
+      <div class="view on" id="view-overview">
+        <div id="ov-content">
+          <div class="empty">
+            <h3>No engagement selected</h3>
+            <p>Select an engagement from the sidebar or create a new one to begin.</p>
+            <button class="btn-navy btn" onclick="openModal()">+ New Engagement</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROMPTS -->
+      <div class="view" id="view-prompts">
+        <div class="panel">
+          <div class="ph"><div class="ph-title">Cowork Prompt Generator</div><span style="font-size:11px;color:var(--text-light)">Auto-fills from selected engagement</span></div>
+          <div class="pb">
+            <div class="form-grid">
+              <div class="fg"><label class="flbl">Client Name</label><input class="finp" id="p-client" placeholder="Client name" oninput="updatePrompt()"></div>
+              <div class="fg"><label class="flbl">Engagement Type</label><input class="finp" id="p-type" placeholder="e.g. Procurement Audit" oninput="updatePrompt()"></div>
+              <div class="fg"><label class="flbl">Framework</label><input class="finp" id="p-fw" placeholder="e.g. MACC Act S17A" oninput="updatePrompt()"></div>
+              <div class="fg"><label class="flbl">Subscope 1</label><input class="finp" id="p-s1" placeholder="Subscope 1" oninput="updatePrompt()"></div>
+              <div class="fg"><label class="flbl">Subscope 2</label><input class="finp" id="p-s2" placeholder="Subscope 2" oninput="updatePrompt()"></div>
+              <div class="fg"><label class="flbl">Subscope 3</label><input class="finp" id="p-s3" placeholder="Subscope 3" oninput="updatePrompt()"></div>
+              <div class="fg"><label class="flbl">Testing Period</label><input class="finp" id="p-tp" placeholder="e.g. Jan–Dec 2024" oninput="updatePrompt()"></div>
+              <div class="fg"><label class="flbl">Risk Level</label><input class="finp" id="p-risk" placeholder="High / Medium / Low" oninput="updatePrompt()"></div>
+              <div class="fg"><label class="flbl">Key Context</label><input class="finp" id="p-ctx" placeholder="LoA, related parties…" oninput="updatePrompt()"></div>
+            </div>
+            <div class="step-pills" id="step-pills"></div>
+            <div class="prompt-out" id="prompt-out">Fill in the client details above to generate your Cowork prompt.</div>
+            <div style="display:flex;gap:10px;align-items:center">
+              <button class="btn-navy btn" onclick="copyPrompt()">Copy Prompt</button>
+              <span class="copy-ok" id="copy-ok">✓ Copied</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LOG -->
+      <div class="view" id="view-log">
+        <div class="panel">
+          <div class="ph"><div class="ph-title">Activity Log</div><span style="font-size:11px;color:var(--text-light)">All actions synced to Google Sheets</span></div>
+          <div id="log-content"><div class="empty"><h3>No activity yet</h3><p>Step updates and engagement actions will appear here.</p></div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────
+const CLIENT_ID='489417814850-3khr286ur180f373pi2q1fb0ulqotkv4.apps.googleusercontent.com';
+const SHEET_ID='1ZgVItOzSqJMpTj8bwq5J_1dns88C5R0nTggkVTsFNM4';
+const SCOPES='https://www.googleapis.com/auth/spreadsheets';
+
+const STEPS=[
+  {name:'Document Requisition',skill:'ia-doc-req-drafter',desc:'Request all documents from the client based on initial scope.',dep:null},
+  {name:'Audit Risk & Testing Plan',skill:'ia-arp-drafter',desc:'Map risks to scope areas and define testing methodology.',dep:'Step 1'},
+  {name:'Walkthrough Preparation',skill:'ia-walkthrough-prep',desc:'Prepare structured questions targeting ARP processes.',dep:'Step 2'},
+  {name:'Process Flowchart',skill:'ia-processflow-drafter',desc:"Document the client's actual process from walkthrough notes.",dep:'Step 3'},
+  {name:'Working Papers',skill:'ia-wp-drafter',desc:'Execute tests of controls and substantive procedures.',dep:'Step 4'},
+  {name:'Findings List',skill:'ia-findings-drafter',desc:'Draft classified findings from working paper observations.',dep:'Step 5'},
+];
+
+const PROMPTS=[
+  d=>`Draft a Document Requisition List for ${d.client}, engaged for ${d.type}. Scope: ${d.scopes}. Framework: ${d.fw}. Period: ${d.tp}.${d.ctx?' Context: '+d.ctx:''}`,
+  d=>`Draft an Audit Risk and Testing Plan for ${d.client}. Type: ${d.type}. Scope: ${d.scopes}. Framework: ${d.fw}. Risk: ${d.risk}. Period: ${d.tp}.${d.ctx?' Context: '+d.ctx:''}`,
+  d=>`Prepare walkthrough questions and preliminary process flow for ${d.client}. Processes: ${d.scopes}. Type: ${d.type}.${d.ctx?' Context: '+d.ctx:''} Flag control gaps from the ARP.`,
+  d=>`Draft a process flowchart for ${d.client} from walkthrough notes. Processes: ${d.scopes}. Type: ${d.type}. Highlight control points and approval steps.\n\n[PASTE WALKTHROUGH NOTES HERE]`,
+  d=>`Draft working papers for ${d.client}, ${d.type}. Scopes: ${d.scopes}. Framework: ${d.fw}. Period: ${d.tp}. Risk: ${d.risk}.${d.ctx?' Context: '+d.ctx:''}\n\n[PASTE ARP RISKS HERE]`,
+  d=>`Draft findings for ${d.client} from working paper observations. Type: ${d.type}. Framework: ${d.fw}. Classify as C/FA/PNC/RNC/W. Include Criteria, Condition, Cause, Consequence, Recommendation.${d.ctx?' Context: '+d.ctx:''}\n\n[PASTE OBSERVATIONS HERE]`,
+];
+
+// ── STATE ─────────────────────────────────────────────────────────
+let tokenClient,accessToken=null,gapiReady=false,gisReady=false;
+let engagements=[],stepStatuses={},activityLog=[];
+let activeEngId=null,activeStep=0;
+
+// ── GOOGLE API INIT ───────────────────────────────────────────────
+function gapiLoaded(){
+  gapi.load('client',async()=>{
+    await gapi.client.init({discoveryDocs:['https://sheets.googleapis.com/$discovery/rest?version=v4']});
+    gapiReady=true;
+    checkReady();
+  });
+}
+
+function gisLoaded(){
+  tokenClient=google.accounts.oauth2.initTokenClient({
+    client_id:CLIENT_ID,
+    scope:SCOPES,
+    callback:async(resp)=>{
+      if(resp.error){setStatus('Auth error: '+resp.error);return;}
+      accessToken=resp.access_token;
+      gapi.client.setToken({access_token:accessToken});
+      document.getElementById('auth').style.display='none';
+      document.getElementById('app').classList.add('ready');
+      await initSheets();
+      await loadData();
+    },
+  });
+  gisReady=true;
+  checkReady();
+}
+
+function checkReady(){
+  if(gapiReady&&gisReady){
+    setStatus('Ready — click to sign in');
+    document.getElementById('signin-btn').disabled=false;
+  }
+}
+
+function setStatus(msg){document.getElementById('auth-status').textContent=msg;}
+
+function handleSignIn(){
+  if(!gapiReady||!gisReady){setStatus('Still initialising, please wait...');return;}
+  setStatus('Opening Google sign-in...');
+  tokenClient.requestAccessToken({prompt:'consent'});
+}
+
+// ── SHEET SETUP ───────────────────────────────────────────────────
+const HEADERS={
+  Engagements:[['ID','Client','Code','Type','Period','Scope1','Scope2','Scope3','Framework','TestPeriod','Risk','PIC','Team','Context','CreatedAt']],
+  StepStatus:[['EngagementID','Step','Status','UpdatedAt','UpdatedBy']],
+  ActivityLog:[['Timestamp','EngagementID','Client','Action','Details','User']]
+};
+
+async function initSheets(){
+  for(const[tab,rows] of Object.entries(HEADERS)){
+    try{
+      const r=await gapi.client.sheets.spreadsheets.values.get({spreadsheetId:SHEET_ID,range:`${tab}!A1:A1`});
+      if(!r.result.values) await writeHeader(tab,rows);
+    }catch(e){
+      try{
+        await gapi.client.sheets.spreadsheets.batchUpdate({spreadsheetId:SHEET_ID,resource:{requests:[{addSheet:{properties:{title:tab}}}]}});
+      }catch(_){}
+      await writeHeader(tab,rows);
+    }
+  }
+}
+
+async function writeHeader(tab,rows){
+  await gapi.client.sheets.spreadsheets.values.update({spreadsheetId:SHEET_ID,range:`${tab}!A1`,valueInputOption:'RAW',resource:{values:rows}});
+}
+
+// ── LOAD DATA ─────────────────────────────────────────────────────
+async function loadData(){
+  showLoad('Loading engagements...');
+  try{
+    const[er,sr,lr]=await Promise.all([
+      gapi.client.sheets.spreadsheets.values.get({spreadsheetId:SHEET_ID,range:'Engagements!A2:O'}),
+      gapi.client.sheets.spreadsheets.values.get({spreadsheetId:SHEET_ID,range:'StepStatus!A2:E'}),
+      gapi.client.sheets.spreadsheets.values.get({spreadsheetId:SHEET_ID,range:'ActivityLog!A2:F'}),
+    ]);
+    engagements=(er.result.values||[]).map(r=>({
+      id:r[0]||'',client:r[1]||'',code:r[2]||'',type:r[3]||'',period:r[4]||'',
+      s1:r[5]||'',s2:r[6]||'',s3:r[7]||'',fw:r[8]||'',tp:r[9]||'',
+      risk:r[10]||'',pic:r[11]||'',team:r[12]||'',ctx:r[13]||'',created:r[14]||''
+    }));
+    stepStatuses={};
+    (sr.result.values||[]).forEach(r=>{stepStatuses[`${r[0]}_${r[1]}`]={status:r[2]||'ns',at:r[3]||'',by:r[4]||''};});
+    activityLog=(lr.result.values||[]).reverse().map(r=>({ts:r[0]||'',eid:r[1]||'',client:r[2]||'',action:r[3]||'',detail:r[4]||'',user:r[5]||''}));
+    renderSidebar();
+    if(activeEngId)renderOverview(activeEngId);
+    renderLog();
+    toast('Synced with Google Sheets','ok');
+  }catch(e){toast('Load failed: '+e.message,'err');console.error(e);}
+  hideLoad();
+}
+
+// ── SAVE ENGAGEMENT ───────────────────────────────────────────────
+async function saveEngagement(){
+  const client=g('m-client'),type=g('m-type');
+  if(!client||!type){toast('Client name and type are required','err');return;}
+  const id='ENG-'+Date.now();
+  const now=new Date().toISOString();
+  const row=[id,client,g('m-code'),type,g('m-period'),g('m-s1'),g('m-s2'),g('m-s3'),g('m-fw'),g('m-tp'),g('m-risk'),g('m-pic'),g('m-team'),g('m-ctx'),now];
+  showLoad('Saving...');
+  try{
+    await gapi.client.sheets.spreadsheets.values.append({spreadsheetId:SHEET_ID,range:'Engagements!A:O',valueInputOption:'RAW',insertDataOption:'INSERT_ROWS',resource:{values:[row]}});
+    await addLog(id,client,'Engagement Created','Type: '+type,now);
+    closeModal();
+    await loadData();
+    selectEng(id);
+    toast('Engagement saved!','ok');
+  }catch(e){toast('Save failed: '+e.message,'err');}
+  hideLoad();
+}
+
+// ── CYCLE STEP STATUS ─────────────────────────────────────────────
+const SL={'ns':'Not Started','ip':'In Progress','dn':'Done'};
+const SC=['ns','ip','dn'];
+
+async function cycleStep(eid,idx){
+  const key=`${eid}_${idx}`;
+  const cur=stepStatuses[key]?.status||'ns';
+  const next=SC[(SC.indexOf(cur)+1)%SC.length];
+  const now=new Date().toISOString();
+  const user='Darren';
+  stepStatuses[key]={status:next,at:now,by:user};
+  showLoad('Updating...');
+  try{
+    const all=await gapi.client.sheets.spreadsheets.values.get({spreadsheetId:SHEET_ID,range:'StepStatus!A:E'});
+    const rows=all.result.values||[];
+    const ri=rows.findIndex(r=>r[0]===eid&&r[1]===String(idx));
+    const newRow=[eid,String(idx),next,now,user];
+    if(ri>0){
+      await gapi.client.sheets.spreadsheets.values.update({spreadsheetId:SHEET_ID,range:`StepStatus!A${ri+1}:E${ri+1}`,valueInputOption:'RAW',resource:{values:[newRow]}});
+    }else{
+      await gapi.client.sheets.spreadsheets.values.append({spreadsheetId:SHEET_ID,range:'StepStatus!A:E',valueInputOption:'RAW',insertDataOption:'INSERT_ROWS',resource:{values:[newRow]}});
+    }
+    const eng=engagements.find(e=>e.id===eid);
+    await addLog(eid,eng?.client||'','Step Updated',`Step ${idx+1} — ${STEPS[idx].name} → ${SL[next]}`,now);
+    renderOverview(eid);
+    renderLog();
+    renderSidebar();
+    toast(`Step ${idx+1} → ${SL[next]}`, 'ok');
+  }catch(e){toast('Update failed: '+e.message,'err');}
+  hideLoad();
+}
+
+// ── LOG ───────────────────────────────────────────────────────────
+async function addLog(eid,client,action,detail,ts){
+  const user='Darren';
+  const row=[ts||new Date().toISOString(),eid,client,action,detail,user];
+  await gapi.client.sheets.spreadsheets.values.append({spreadsheetId:SHEET_ID,range:'ActivityLog!A:F',valueInputOption:'RAW',insertDataOption:'INSERT_ROWS',resource:{values:[row]}});
+  activityLog.unshift({ts:row[0],eid,client,action,detail,user});
+}
+
+// ── RENDER ────────────────────────────────────────────────────────
+function renderSidebar(){
+  const el=document.getElementById('sb-engs');
+  if(!engagements.length){el.innerHTML='<div style="font-size:11px;color:rgba(255,255,255,.18);padding:6px 10px">No engagements yet</div>';return;}
+  el.innerHTML=engagements.map(e=>{
+    const done=STEPS.filter((_,i)=>(stepStatuses[`${e.id}_${i}`]?.status||'ns')==='dn').length;
+    const pct=Math.round(done/STEPS.length*100);
+    return `<div class="eng-chip ${e.id===activeEngId?'on':''}" onclick="selectEng('${e.id}')">
+      <div class="eng-name">${e.client}</div>
+      <div class="eng-pct">${pct}%</div>
+    </div>`;
+  }).join('');
+}
+
+function selectEng(id){
+  activeEngId=id;
+  switchView('overview',document.querySelector('.nav-btn'));
+  renderOverview(id);
+  renderSidebar();
+}
+
+function renderOverview(eid){
+  const eng=engagements.find(e=>e.id===eid);
+  if(!eng)return;
+  document.getElementById('tb-title').textContent=eng.client;
+  document.getElementById('tb-sub').textContent=`${eng.type}${eng.tp?' · '+eng.tp:''}`;
+  const sts=STEPS.map((_,i)=>stepStatuses[`${eid}_${i}`]?.status||'ns');
+  const done=sts.filter(s=>s==='dn').length;
+  const prog=sts.filter(s=>s==='ip').length;
+  const pct=Math.round(done/STEPS.length*100);
+  const scopes=[eng.s1,eng.s2,eng.s3].filter(Boolean).join(' · ')||'—';
+
+  document.getElementById('ov-content').innerHTML=`
+    <div class="metrics">
+      <div class="mc"><div class="mc-lbl">Progress</div><div class="mc-val gold">${pct}%</div></div>
+      <div class="mc"><div class="mc-lbl">Done</div><div class="mc-val green">${done}</div></div>
+      <div class="mc"><div class="mc-lbl">In Progress</div><div class="mc-val orange">${prog}</div></div>
+      <div class="mc"><div class="mc-lbl">Not Started</div><div class="mc-val">${6-done-prog}</div></div>
+      <div class="mc"><div class="mc-lbl">Risk Level</div><div class="mc-val" style="font-size:18px;padding-top:5px">${eng.risk||'—'}</div></div>
+    </div>
+    <div class="pipeline">
+      ${STEPS.map((s,i)=>`
+        <div class="pn"><div class="pdot ${sts[i]}">${i+1}</div><div class="plbl">${s.name}</div></div>
+        ${i<5?`<div class="pline ${sts[i]==='dn'?'dn':''}"></div>`:''}
+      `).join('')}
+    </div>
+    <div class="panel">
+      <div class="ph"><div class="ph-title">Engagement Details</div></div>
+      <div class="pb"><div class="det-grid">
+        ${det('Scope Areas',scopes)}${det('Framework',eng.fw||'—')}${det('Testing Period',eng.tp||'—')}
+        ${det('Senior Auditor',eng.pic||'—')}${det('Team',eng.team||'—')}${det('Context',eng.ctx||'—')}
+      </div></div>
+    </div>
+    <div class="steps">
+      ${STEPS.map((s,i)=>`
+        <div class="sc ${sts[i]}">
+          <div class="sc-top">
+            <div class="sc-num ${sts[i]}">${i+1}</div>
+            <div class="sc-badge ${sts[i]}">${SL[sts[i]]}</div>
+          </div>
+          <div class="sc-title">${s.name}</div>
+          <div class="sc-desc">${s.desc}</div>
+          <div class="sc-foot">
+            <div class="sc-dep">${s.dep?'→ requires '+s.dep:'Starting point'}</div>
+            <button class="cycle-btn" onclick="cycleStep('${eid}',${i})">${sts[i]==='ns'?'Start':sts[i]==='ip'?'Mark Done':'Reopen'}</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>`;
+  prefillPrompt(eng);
+}
+
+function det(label,val){return `<div class="det-item"><div class="lbl">${label}</div><div class="val">${val}</div></div>`;}
+
+function renderLog(){
+  const el=document.getElementById('log-content');
+  if(!activityLog.length){el.innerHTML='<div class="empty"><h3>No activity yet</h3><p>Step updates and engagement actions will appear here.</p></div>';return;}
+  el.innerHTML=`<table class="log-tbl"><thead><tr><th>Time</th><th>Client</th><th>Action</th><th>Details</th><th>By</th></tr></thead><tbody>
+    ${activityLog.slice(0,60).map(l=>`<tr>
+      <td style="font-family:'DM Mono',monospace;white-space:nowrap;font-size:11px">${fmtTs(l.ts)}</td>
+      <td>${l.client}</td><td><strong>${l.action}</strong></td><td>${l.detail}</td><td>${l.user}</td>
+    </tr>`).join('')}
+  </tbody></table>`;
+}
+
+function fmtTs(ts){if(!ts)return'—';try{return new Date(ts).toLocaleString('en-MY',{dateStyle:'short',timeStyle:'short'});}catch(e){return ts;}}
+
+// ── PROMPT GENERATOR ──────────────────────────────────────────────
+function initPills(){
+  document.getElementById('step-pills').innerHTML=STEPS.map((s,i)=>
+    `<div class="sp ${i===0?'on':''}" onclick="selStep(${i},this)">Step ${i+1}</div>`
+  ).join('');
+}
+
+function selStep(i,el){
+  activeStep=i;
+  document.querySelectorAll('.sp').forEach(p=>p.classList.remove('on'));
+  el.classList.add('on');
+  updatePrompt();
+}
+
+function getD(){
+  return{
+    client:g('p-client')||'[client]',type:g('p-type')||'[type]',
+    scopes:[g('p-s1'),g('p-s2'),g('p-s3')].filter(Boolean).join(', ')||'[scopes]',
+    fw:g('p-fw')||'[framework]',tp:g('p-tp')||'[period]',
+    risk:g('p-risk')||'[risk]',ctx:g('p-ctx'),
+  };
+}
+
+function updatePrompt(){document.getElementById('prompt-out').textContent=PROMPTS[activeStep](getD());}
+
+function prefillPrompt(eng){
+  s('p-client',eng.client);s('p-type',eng.type);s('p-s1',eng.s1);s('p-s2',eng.s2);
+  s('p-s3',eng.s3);s('p-fw',eng.fw);s('p-tp',eng.tp);s('p-risk',eng.risk);s('p-ctx',eng.ctx);
+  updatePrompt();
+}
+
+function copyPrompt(){
+  navigator.clipboard.writeText(document.getElementById('prompt-out').textContent).then(()=>{
+    const c=document.getElementById('copy-ok');c.style.opacity='1';setTimeout(()=>c.style.opacity='0',2500);
+  });
+}
+
+// ── UI HELPERS ────────────────────────────────────────────────────
+function switchView(name,btn){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
+  document.getElementById('view-'+name).classList.add('on');
+  document.querySelectorAll('.nav-btn').forEach(n=>n.classList.remove('on'));
+  if(btn)btn.classList.add('on');
+}
+function openModal(){document.getElementById('eng-modal').classList.add('open');}
+function closeModal(){
+  document.getElementById('eng-modal').classList.remove('open');
+  ['m-client','m-code','m-type','m-period','m-s1','m-s2','m-s3','m-fw','m-tp','m-pic','m-team','m-ctx'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const r=document.getElementById('m-risk');if(r)r.value='';
+}
+function showLoad(msg){document.getElementById('ld-txt').textContent=msg||'Loading...';document.getElementById('ldo').classList.add('show');}
+function hideLoad(){document.getElementById('ldo').classList.remove('show');}
+function toast(msg,type='ok'){const t=document.getElementById('toast');t.textContent=msg;t.className='toast '+type;setTimeout(()=>t.className='toast',3500);}
+function g(id){const el=document.getElementById(id);return el?el.value.trim():'';}
+function s(id,val){const el=document.getElementById(id);if(el)el.value=val||'';}
+
+// ── BOOT ──────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',()=>{
+  initPills();
+  updatePrompt();
+  document.getElementById('signin-btn').disabled=true;
+  setStatus('Initialising Google API...');
+});
+</script>
+
+<!-- Load Google APIs AFTER body — with explicit callbacks -->
+<script src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+<script src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+
+</body>
+</html>
