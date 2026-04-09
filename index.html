@@ -245,6 +245,10 @@ body{font-family:'Outfit',sans-serif;background:var(--cream);color:var(--text);m
 /* step file count badge */
 .sc-files-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--text-light);font-family:'DM Mono',monospace;margin-top:4px;margin-bottom:8px}
 .sc-files-badge.has-files{color:var(--green)}
+.sc-files-badge.clickable{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px}
+.sc-files-badge.clickable:hover{opacity:.75}
+/* step folder category label */
+.sc-folder-cat{display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--text-light);font-family:'DM Mono',monospace;margin-bottom:6px;padding:2px 7px;background:var(--cream);border-radius:4px;border:1px solid var(--border)}
 /* step last-updated footer */
 .sc-updated{font-size:10px;color:var(--text-light);font-family:'DM Mono',monospace;margin-top:6px;padding-top:6px;border-top:1px solid var(--border)}
 /* dependency warning on step cards */
@@ -566,6 +570,9 @@ var STEPS=[
   {name:'Working Papers',skill:'ia-wp-drafter_SKILL',desc:'Execute tests of controls and substantive procedures.',dep:'Step 4'},
   {name:'Findings List',skill:'ia-findings-drafter_SKILL',desc:'Draft classified findings from working paper observations.',dep:'Step 5'}
 ];
+// Maps each step (0-5) to its client folder section
+var STEP_FOLDER_MAP=['1.0','1.0','1.0','3.0','3.0','4.0'];
+var STEP_FOLDER_LABELS={'1.0':'1.0 Planning','3.0':'3.0 Working Files','4.0':'4.0 Findings & Reports'};
 
 function buildPrompt(idx, d) {
   var c = d.client || '[client]';
@@ -992,11 +999,10 @@ function renderOverview(eid) {
   });
 
   // Step-to-file count lookup from driveData
-  var stepFolderMap = ['1.0','2.0','1.0','2.0','3.0','4.0']; // which subfolder each step maps to
   function getFileCountForStep(stepIdx) {
     if (!driveData || !driveData.length) return -1;
     var clientName = eng.client.toLowerCase();
-    var folderPrefix = stepFolderMap[stepIdx];
+    var folderPrefix = STEP_FOLDER_MAP[stepIdx];
     var count = 0;
     var found = false;
     driveData.forEach(function(sg) {
@@ -1041,8 +1047,11 @@ function renderOverview(eid) {
       var depOk = i===0 || sts[i-1]==='dn';
       var warnHtml = (!depOk && sts[i]!=='dn') ? '<div class="sc-dep-warn show">\u26a0 '+STEPS[i-1].name+' not yet complete</div>' : '';
       var fileCount = getFileCountForStep(i);
+      var folderCatLabel = STEP_FOLDER_LABELS[STEP_FOLDER_MAP[i]] || '';
+      var folderCat = folderCatLabel ? '<div class="sc-folder-cat"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 3h3l1 1.5H11v6H1V3z"/></svg>'+folderCatLabel+'</div>' : '';
+      var hasLink = !!folderLinks[eid];
       var fileBadge = fileCount >= 0
-        ? '<div class="sc-files-badge'+(fileCount>0?' has-files':'')+'">&#128196; '+fileCount+' file'+(fileCount!==1?'s':'')+' in Drive</div>'
+        ? '<div class="sc-files-badge'+(fileCount>0?' has-files':'')+(hasLink?' clickable':'')+'"'+(hasLink?' onclick="openStepInDrive(\''+eid+'\','+i+')" title="View in Drive: '+folderCatLabel+'"':'')+'>&#128196; '+fileCount+' file'+(fileCount!==1?'s':'')+' in '+folderCatLabel+'</div>'
         : '';
       var updatedHtml = stData.at
         ? '<div class="sc-updated">Updated '+fmtTs(stData.at)+' by <strong>'+(stData.by||'—')+'</strong></div>'
@@ -1050,6 +1059,7 @@ function renderOverview(eid) {
       return '<div class="sc '+sts[i]+'">'
         +'<div class="sc-top"><div class="sc-num '+sts[i]+'">'+(i+1)+'</div><div class="sc-badge '+sts[i]+'">'+SL[sts[i]]+'</div></div>'
         +'<div class="sc-title">'+s.name+'</div>'
+        +folderCat
         +warnHtml
         +'<div class="sc-desc">'+s.desc+'</div>'
         +fileBadge
@@ -1340,6 +1350,30 @@ function setDriveFolderFilter(folderId, label) {
   document.getElementById('drive-search').value = '';
   driveSearchTerm = '';
   if (driveLoaded) renderDriveFiles();
+}
+
+function openStepInDrive(engId, stepIdx) {
+  var prefix = STEP_FOLDER_MAP[stepIdx];
+  var link = folderLinks[engId];
+  switchView('drive', document.querySelectorAll('.nav-btn')[3]);
+  if (!link) { loadDriveFiles(); return; }
+  if (!driveLoaded) {
+    loadDriveFiles();
+    setDriveFolderFilter(link.folderId, link.folderName);
+    return;
+  }
+  setDriveFolderFilter(link.folderId, link.folderName);
+  var domId = 'cr-' + link.folderId;
+  openClientRow(domId);
+  setTimeout(function() {
+    var tabs = document.querySelectorAll('#' + domId + ' .cr-tab');
+    for (var t = 0; t < tabs.length; t++) {
+      if (tabs[t].textContent.trim().startsWith(prefix)) {
+        tabs[t].click();
+        break;
+      }
+    }
+  }, 60);
 }
 
 function getMimeLabel(mimeType, name) {
