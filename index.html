@@ -303,8 +303,22 @@ body{font-family:'Outfit',sans-serif;background:var(--cream);color:var(--text);m
 @keyframes shimmer{0%{background-position:-600px 0}100%{background-position:600px 0}}
 .skel{background:linear-gradient(90deg,#eef0f2 25%,#e2e5e8 50%,#eef0f2 75%);background-size:1200px 100%;animation:shimmer 1.6s infinite;border-radius:4px}
 .skel-row{background:var(--white);border:1px solid var(--border);border-radius:var(--rlg);padding:16px 20px;display:flex;align-items:center;gap:14px;margin-bottom:12px}
-/* ── LOG LOAD MORE ── */
-.log-load-more{display:flex;justify-content:center;padding:14px;border-top:1px solid var(--border)}
+/* ── PANEL RESIZE HANDLE ── */
+#drive-panel-handle{width:8px;cursor:col-resize;flex-shrink:0;display:flex;align-items:center;justify-content:center;position:relative;z-index:10;margin:0 -2px}
+#drive-panel-handle::after{content:'';width:2px;height:48px;background:var(--border-dark);border-radius:2px;transition:background .15s,height .15s}
+#drive-panel-handle:hover::after,#drive-panel-handle.dragging::after{background:var(--gold);height:72px}
+/* ── NESTED FOLDER IN-PANE NAVIGATION ── */
+.cr-subfolder-item{display:flex;align-items:center;gap:9px;padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s;background:rgba(201,168,76,.03)}
+.cr-subfolder-item:hover{background:rgba(201,168,76,.1)}
+.cr-subfolder-icon{width:24px;height:24px;border-radius:6px;background:rgba(201,168,76,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cr-subfolder-name{flex:1;font-size:12px;color:var(--navy);font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cr-subfolder-count{font-size:10px;color:var(--text-light);font-family:'DM Mono',monospace;flex-shrink:0}
+.cr-pane-breadcrumb{display:flex;align-items:center;gap:6px;padding:6px 14px;background:var(--cream);border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s}
+.cr-pane-breadcrumb:hover{background:var(--border)}
+.cr-crumb-trail{display:flex;align-items:center;gap:3px;flex:1;min-width:0;overflow:hidden}
+.cr-crumb{font-size:11px;color:var(--text-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px}
+.cr-crumb.cur{color:var(--navy);font-weight:600}
+.cr-crumb-sep{color:var(--text-light);font-size:10px;flex-shrink:0}
 </style>
 </style>
 </head>
@@ -521,6 +535,7 @@ body{font-family:'Outfit',sans-serif;background:var(--cream);color:var(--text);m
               <div class="empty"><h3>Loading files...</h3><p>Fetching your client folders from Google Drive.</p></div>
             </div>
           </div>
+          <div id="drive-panel-handle" title="Drag to resize panel"></div>
           <div id="drive-panel">
             <div class="dp-empty">
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 7h5l2 2h11v12H3V7z"/><circle cx="10" cy="14" r="2"/><path d="M10 16v2M8 18h4"/></svg>
@@ -987,9 +1002,9 @@ function renderOverview(eid) {
     driveData.forEach(function(sg) {
       sg.clients.forEach(function(c) {
         if (c.folder.name.toLowerCase().indexOf(clientName) >= 0 || clientName.indexOf(c.folder.name.toLowerCase().split('-').pop().trim()) >= 0) {
-          Object.values(c.subFolders).forEach(function(sf) {
-            if (sf.subFolder.name.startsWith(folderPrefix)) {
-              count = sf.files.length; found = true;
+          c.subFolders.forEach(function(node) {
+            if (node.folder.name.startsWith(folderPrefix)) {
+              count = countAllFiles(node); found = true;
             }
           });
         }
@@ -1365,6 +1380,34 @@ function renderFileRow(f) {
     +'</a>';
 }
 
+// Recursively fetch a folder's files and subfolders up to MAX_DEPTH levels deep
+// depth=0 = client folder; depth=1 = L2 (tab level); depth=2 = L3; depth=3 = L4 (files only)
+var DRIVE_MAX_DEPTH = 3;
+function fetchFolderNode(folderId, depth) {
+  return Promise.all([
+    gapi.client.drive.files.list({
+      q: '"'+folderId+'" in parents and mimeType!="application/vnd.google-apps.folder" and trashed=false',
+      fields: 'files(id,name,mimeType,modifiedTime,webViewLink)', orderBy: 'name', pageSize: 200
+    }),
+    depth < DRIVE_MAX_DEPTH
+      ? gapi.client.drive.files.list({
+          q: '"'+folderId+'" in parents and mimeType="application/vnd.google-apps.folder" and trashed=false',
+          fields: 'files(id,name)', orderBy: 'name', pageSize: 50
+        })
+      : Promise.resolve({result: {files: []}})
+  ]).then(function(results) {
+    var files = results[0].result.files || [];
+    var sfList = results[1].result.files || [];
+    return Promise.all(sfList.map(function(sf) {
+      return fetchFolderNode(sf.id, depth + 1).then(function(contents) {
+        return {folder: sf, files: contents.files, subFolders: contents.subFolders};
+      });
+    })).then(function(subFolders) {
+      return {files: files, subFolders: subFolders};
+    });
+  });
+}
+
 function fetchSourceData(source) {
   return gapi.client.drive.files.list({
     q: '"'+source.id+'" in parents and mimeType="application/vnd.google-apps.folder" and trashed=false',
@@ -1372,46 +1415,12 @@ function fetchSourceData(source) {
   }).then(function(resp) {
     var clientFolders = resp.result.files || [];
     return Promise.all(clientFolders.map(function(cf) {
-      return gapi.client.drive.files.list({
-        q: '"'+cf.id+'" in parents and mimeType="application/vnd.google-apps.folder" and trashed=false',
-        fields: 'files(id,name)', orderBy: 'name', pageSize: 50
-      }).then(function(r) { return {clientFolder: cf, subFolders: r.result.files || []}; });
+      return fetchFolderNode(cf.id, 0).then(function(contents) {
+        return {folder: cf, rootFiles: contents.files, subFolders: contents.subFolders};
+      });
     }));
-  }).then(function(clientResults) {
-    var allPromises = [];
-    clientResults.forEach(function(cr) {
-      allPromises.push(
-        gapi.client.drive.files.list({
-          q: '"'+cr.clientFolder.id+'" in parents and trashed=false and mimeType!="application/vnd.google-apps.folder"',
-          fields: 'files(id,name,mimeType,modifiedTime,webViewLink)', orderBy: 'name', pageSize: 100
-        }).then(function(r) { return {clientFolder: cr.clientFolder, subFolder: null, files: r.result.files || []}; })
-      );
-      cr.subFolders.forEach(function(sf) {
-        allPromises.push(
-          gapi.client.drive.files.list({
-            q: '"'+sf.id+'" in parents and trashed=false and mimeType!="application/vnd.google-apps.folder"',
-            fields: 'files(id,name,mimeType,modifiedTime,webViewLink)', orderBy: 'name', pageSize: 200
-          }).then(function(r) { return {clientFolder: cr.clientFolder, subFolder: sf, files: r.result.files || []}; })
-        );
-      });
-    });
-    return Promise.all(allPromises).then(function(fileResults) {
-      var map = {}, order = [];
-      clientResults.forEach(function(cr) {
-        map[cr.clientFolder.id] = {folder: cr.clientFolder, subFolders: {}, rootFiles: []};
-        order.push(cr.clientFolder.id);
-        cr.subFolders.forEach(function(sf) {
-          map[cr.clientFolder.id].subFolders[sf.id] = {subFolder: sf, files: []};
-        });
-      });
-      fileResults.forEach(function(fr) {
-        var cid = fr.clientFolder.id;
-        if (!map[cid]) return;
-        if (!fr.subFolder) { map[cid].rootFiles = fr.files; }
-        else if (map[cid].subFolders[fr.subFolder.id]) { map[cid].subFolders[fr.subFolder.id].files = fr.files; }
-      });
-      return {source: source, clients: order.map(function(id){ return map[id]; })};
-    });
+  }).then(function(clients) {
+    return {source: source, clients: clients};
   });
 }
 
@@ -1440,10 +1449,18 @@ function refreshDriveFiles() {
   Promise.all(DRIVE_SOURCES.map(fetchSourceData)).then(function(results) {
     driveData = results;
     driveLoaded = true;
+    // Build lookup map for pane navigation
+    driveNodeMap = {};
+    driveNavState = {};
+    results.forEach(function(sg) {
+      sg.clients.forEach(function(c) { buildNodeMap(c.subFolders); });
+    });
     var totalClients = results.reduce(function(n,r){return n+r.clients.length;},0);
     var totalFiles = results.reduce(function(n,r){
       return n+r.clients.reduce(function(m,c){
-        return m+c.rootFiles.length+Object.values(c.subFolders).reduce(function(a,s){return a+s.files.length;},0);
+        var t = c.rootFiles.length;
+        c.subFolders.forEach(function(node){ t += countAllFiles(node); });
+        return m+t;
       },0);
     },0);
     document.getElementById('drive-status').textContent = totalClients+' client'+(totalClients!==1?'s':'')+' \u00b7 '+totalFiles+' files';
@@ -1503,6 +1520,121 @@ function getEngagementForFolderId(folderId) {
   return null;
 }
 
+// ── DRIVE HELPERS (recursive node structure) ──────────────────────
+var driveNodeMap = {};   // folderId -> folder node (L2+)
+var driveNavState = {};  // domId+'_'+sfId -> [folderId, ...] nav path
+
+function countAllFiles(node) {
+  var n = (node.files||[]).length;
+  (node.subFolders||[]).forEach(function(sf){ n += countAllFiles(sf); });
+  return n;
+}
+
+function collectAllFiles(node) {
+  var f = (node.files||[]).slice();
+  (node.subFolders||[]).forEach(function(sf){ f = f.concat(collectAllFiles(sf)); });
+  return f;
+}
+
+function anyFileMatches(node, search) {
+  if ((node.files||[]).some(function(f){ return fileMatchesSearch(f, search); })) return true;
+  return (node.subFolders||[]).some(function(sf){ return anyFileMatches(sf, search); });
+}
+
+function latestModified(node) {
+  var t = 0;
+  (node.files||[]).forEach(function(f){ var x=new Date(f.modifiedTime||0).getTime(); if(x>t) t=x; });
+  (node.subFolders||[]).forEach(function(sf){ var x=latestModified(sf); if(x>t) t=x; });
+  return t;
+}
+
+function buildNodeMap(nodes) {
+  (nodes||[]).forEach(function(node) {
+    driveNodeMap[node.folder.id] = node;
+    buildNodeMap(node.subFolders);
+  });
+}
+
+// ── PANE NAVIGATION ───────────────────────────────────────────────
+function renderPaneContent(node, sfId, domId, navPath) {
+  // Follow nav path to current sub-node
+  var currentNode = node;
+  var pathNames = [node.folder.name];
+  for (var i = 0; i < (navPath||[]).length; i++) {
+    var found = null;
+    for (var j = 0; j < currentNode.subFolders.length; j++) {
+      if (currentNode.subFolders[j].folder.id === navPath[i]) { found = currentNode.subFolders[j]; break; }
+    }
+    if (!found) break;
+    currentNode = found;
+    pathNames.push(found.folder.name);
+  }
+
+  var html = '';
+
+  // Breadcrumb (shown when navigated deeper)
+  if (navPath && navPath.length > 0) {
+    var crumbs = pathNames.map(function(name, i) {
+      if (i === pathNames.length - 1) return '<span class="cr-crumb cur">'+escHtml(name)+'</span>';
+      return '<span class="cr-crumb" onclick="navigateBackTo(\''+domId+'\',\''+sfId+'\','+i+');event.stopPropagation()">'+escHtml(name)+'</span><span class="cr-crumb-sep">›</span>';
+    }).join('');
+    html += '<div class="cr-pane-breadcrumb" onclick="navigateBack(\''+domId+'\',\''+sfId+'\')">'
+      +'<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2L4 6l4 4"/></svg>'
+      +'<div class="cr-crumb-trail">'+crumbs+'</div>'
+      +'</div>';
+  }
+
+  // Sub-folders of current level
+  (currentNode.subFolders||[]).forEach(function(sf) {
+    var cnt = countAllFiles(sf);
+    html += '<div class="cr-subfolder-item" onclick="navigateInto(\''+domId+'\',\''+sfId+'\',\''+sf.folder.id+'\')">'
+      +'<div class="cr-subfolder-icon"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="var(--gold)" stroke-width="1.5"><path d="M1 4h5l1.5 2H15v8H1V4z"/></svg></div>'
+      +'<div class="cr-subfolder-name">'+escHtml(sf.folder.name)+'</div>'
+      +'<span class="cr-subfolder-count">'+cnt+' file'+(cnt!==1?'s':'')+'</span>'
+      +'<svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="var(--text-light)" stroke-width="1.5"><path d="M4 2l4 4-4 4"/></svg>'
+      +'</div>';
+  });
+
+  // Files at current level
+  var files = (currentNode.files||[]).slice();
+  if (driveSort === 'recent') files.sort(function(a,b){ return new Date(b.modifiedTime||0)-new Date(a.modifiedTime||0); });
+  if (driveSearchTerm) files = files.filter(function(f){ return fileMatchesSearch(f, driveSearchTerm); });
+
+  if (files.length) {
+    html += files.map(renderFileRow).join('');
+  } else if (!(currentNode.subFolders||[]).length) {
+    html += '<div class="cf-empty">No files in this folder</div>';
+  }
+  return html;
+}
+
+function navigateInto(domId, sfId, targetId) {
+  var key = domId+'_'+sfId;
+  driveNavState[key] = (driveNavState[key]||[]).concat([targetId]);
+  refreshPaneContent(domId, sfId);
+}
+
+function navigateBack(domId, sfId) {
+  var key = domId+'_'+sfId;
+  if (driveNavState[key] && driveNavState[key].length) driveNavState[key] = driveNavState[key].slice(0,-1);
+  refreshPaneContent(domId, sfId);
+}
+
+function navigateBackTo(domId, sfId, depth) {
+  var key = domId+'_'+sfId;
+  driveNavState[key] = (driveNavState[key]||[]).slice(0, depth);
+  refreshPaneContent(domId, sfId);
+}
+
+function refreshPaneContent(domId, sfId) {
+  var pane = document.getElementById(domId+'-pane-'+sfId);
+  if (!pane) return;
+  var node = driveNodeMap[sfId];
+  if (!node) return;
+  var el = pane.querySelector('.cr-pane-content');
+  if (el) el.innerHTML = renderPaneContent(node, sfId, domId, driveNavState[domId+'_'+sfId]||[]);
+}
+
 function renderDriveFiles() {
   var container = document.getElementById('drive-content');
   if (!driveData || !driveData.length) {
@@ -1522,9 +1654,7 @@ function renderDriveFiles() {
     if (driveSort === 'recent') {
       clients.sort(function(a,b) {
         function latest(c) {
-          var t=0;
-          Object.values(c.subFolders).forEach(function(sf){sf.files.forEach(function(f){var x=new Date(f.modifiedTime||0).getTime();if(x>t)t=x;});});
-          c.rootFiles.forEach(function(f){var x=new Date(f.modifiedTime||0).getTime();if(x>t)t=x;});
+          var t = latestModified({files: c.rootFiles, subFolders: c.subFolders});
           return t;
         }
         return latest(b)-latest(a);
@@ -1540,15 +1670,13 @@ function renderDriveFiles() {
       // Apply linked-only filter
       if (driveLinkedOnly && !getEngagementForFolderId(fid)) return;
 
-      // Apply search filter across all files
+      // Apply search filter across all files (recursive)
       var hasMatch = !driveSearchTerm;
       if (driveSearchTerm) {
         if (d.folder.name.toLowerCase().indexOf(driveSearchTerm)>=0) { hasMatch=true; }
         else {
-          Object.values(d.subFolders).forEach(function(sf){
-            sf.files.forEach(function(f){ if(fileMatchesSearch(f,driveSearchTerm)) hasMatch=true; });
-          });
-          d.rootFiles.forEach(function(f){ if(fileMatchesSearch(f,driveSearchTerm)) hasMatch=true; });
+          hasMatch = d.subFolders.some(function(node){ return anyFileMatches(node, driveSearchTerm); })
+            || d.rootFiles.some(function(f){ return fileMatchesSearch(f, driveSearchTerm); });
         }
       }
       if (!hasMatch) return;
@@ -1563,50 +1691,41 @@ function renderDriveFiles() {
         engBadge = '<span class="cf-eng-badge '+st+'">'+pct+'% '+SL[st]+'</span>';
       }
 
-      // Link button
-      var linkBtnLabel = isLinked ? '&#128279; '+escHtml((folderLinks[linkedEng&&linkedEng.id]||{}).folderName||'Linked') : '+ Link Engagement';
-      // Find matching engId for this folder
-      var linkedEngId = null;
-      for (var eid in folderLinks) { if (folderLinks[eid].folderId===fid) { linkedEngId=eid; break; } }
-
-      // Build tabs (subfolders)
-      var subKeys = Object.keys(d.subFolders);
-      var firstTabId = subKeys.length ? subKeys[0] : null;
       var domId = 'cr-'+fid;
 
-      var tabsHtml = subKeys.map(function(sfId, idx) {
-        var sf = d.subFolders[sfId];
-        var cnt = sf.files.length;
+      // Build tabs: one per L2 subfolder node
+      var tabsHtml = d.subFolders.map(function(node, idx) {
+        var cnt = countAllFiles(node);
+        var sfId = node.folder.id;
         return '<div class="cr-tab'+(idx===0?' on':'')+'" id="'+domId+'-tab-'+sfId+'" onclick="selectTab(\''+domId+'\',\''+sfId+'\')">'
           +'<svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 3h3l1 1.5H11v6H1V3z"/></svg>'
-          +escHtml(sf.subFolder.name)
+          +escHtml(node.folder.name)
           +'<span class="cr-tab-count">'+cnt+'</span>'
           +'</div>';
       }).join('');
 
-      // Build file panes (one per subfolder)
-      var panesHtml = subKeys.map(function(sfId, idx) {
-        var sf = d.subFolders[sfId];
-        var files = sf.files.slice();
-        if (driveSort==='recent') files.sort(function(a,b){return new Date(b.modifiedTime||0)-new Date(a.modifiedTime||0);});
-        var filtered = driveSearchTerm ? files.filter(function(f){return fileMatchesSearch(f,driveSearchTerm);}) : files;
-        var uploadUrl = 'https://drive.google.com/drive/folders/'+sf.subFolder.id;
-        var filesHtml = filtered.length ? filtered.map(renderFileRow).join('') : '<div class="cf-empty">No files in this folder</div>';
+      // Build file panes: one per L2 subfolder node, with nested navigation
+      var panesHtml = d.subFolders.map(function(node, idx) {
+        var sfId = node.folder.id;
+        var uploadUrl = 'https://drive.google.com/drive/folders/'+sfId;
+        var cnt = countAllFiles(node);
+        var initContent = renderPaneContent(node, sfId, domId, []);
         return '<div class="cr-files-pane" id="'+domId+'-pane-'+sfId+'" style="display:'+(idx===0?'flex':'none')+';flex-direction:column">'
-          +'<div class="cr-files-upload"><span class="cr-files-upload-label">'+filtered.length+' file'+(filtered.length!==1?'s':'')+'</span>'
+          +'<div class="cr-files-upload">'
+          +'<span class="cr-files-upload-label">'+cnt+' file'+(cnt!==1?'s':'')+' total</span>'
           +'<a class="sf-upload-btn" href="'+uploadUrl+'" target="_blank" rel="noopener">&#8679; Open in Drive</a>'
           +'</div>'
-          +filesHtml
+          +'<div class="cr-pane-content">'+initContent+'</div>'
           +'</div>';
       }).join('');
 
-      // Root files (no subfolder)
+      // Root files (General tab)
       var rootFiles = d.rootFiles.slice();
       if (driveSort==='recent') rootFiles.sort(function(a,b){return new Date(b.modifiedTime||0)-new Date(a.modifiedTime||0);});
       var filteredRoot = driveSearchTerm ? rootFiles.filter(function(f){return fileMatchesSearch(f,driveSearchTerm);}) : rootFiles;
       if (filteredRoot.length) {
         tabsHtml += '<div class="cr-tab" id="'+domId+'-tab-root" onclick="selectTab(\''+domId+'\',\'root\')">General<span class="cr-tab-count">'+filteredRoot.length+'</span></div>';
-        panesHtml += '<div class="cr-files-pane" id="'+domId+'-pane-root" style="display:none;flex-direction:column">'+filteredRoot.map(renderFileRow).join('')+'</div>';
+        panesHtml += '<div class="cr-files-pane" id="'+domId+'-pane-root" style="display:none;flex-direction:column"><div class="cr-pane-content">'+filteredRoot.map(renderFileRow).join('')+'</div></div>';
       }
 
       visibleRows++;
@@ -1862,10 +1981,10 @@ function renderDrivePanel(folderId) {
     return;
   }
 
-  // Aggregate all files
+  // Aggregate all files recursively
   var allFiles = clientData.rootFiles.slice();
-  Object.keys(clientData.subFolders).forEach(function(sfId) {
-    allFiles = allFiles.concat(clientData.subFolders[sfId].files);
+  clientData.subFolders.forEach(function(node) {
+    allFiles = allFiles.concat(collectAllFiles(node));
   });
 
   // File type counts
@@ -1883,7 +2002,7 @@ function renderDrivePanel(folderId) {
   // Linked engagement
   var linkedEng = getEngagementForFolderId(folderId);
   var totalFiles = allFiles.length;
-  var subCount = Object.keys(clientData.subFolders).length;
+  var subCount = clientData.subFolders.length;
 
   // Engagement section
   var engSection = '';
@@ -1959,11 +2078,42 @@ function renderDrivePanel(folderId) {
     +'</div>';
 }
 
+// ── PANEL RESIZE ─────────────────────────────────────────────────
+function initPanelResize() {
+  var handle = document.getElementById('drive-panel-handle');
+  var panel  = document.getElementById('drive-panel');
+  if (!handle || !panel) return;
+  // Restore saved width
+  try { var w = localStorage.getItem('ia_panel_width'); if(w) panel.style.width = w+'px'; } catch(e){}
+  var resizing = false, startX = 0, startW = 0;
+  handle.addEventListener('mousedown', function(e) {
+    resizing = true; startX = e.clientX; startW = panel.offsetWidth;
+    handle.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (!resizing) return;
+    var dx = startX - e.clientX; // drag left = wider panel
+    panel.style.width = Math.max(200, Math.min(520, startW + dx)) + 'px';
+  });
+  document.addEventListener('mouseup', function() {
+    if (!resizing) return;
+    resizing = false;
+    handle.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    try { localStorage.setItem('ia_panel_width', panel.offsetWidth); } catch(e){}
+  });
+}
+
 // ── BOOT ──────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded',function(){
   initPills();
   updatePrompt();
   renderSettingsLinks();
+  initPanelResize();
   document.getElementById('signin-btn').disabled=true;
   setStatus('Initialising Google API...');
 });
