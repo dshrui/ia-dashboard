@@ -267,6 +267,44 @@ body{font-family:'Outfit',sans-serif;background:var(--cream);color:var(--text);m
 .settings-row-label{font-size:13px;color:var(--text);font-weight:500}
 .settings-row-sub{font-size:11px;color:var(--text-light);margin-top:2px}
 .settings-row-val{font-size:12px;color:var(--text-mid);font-family:'DM Mono',monospace;text-align:right}
+/* ── DRIVE TWO-COLUMN LAYOUT ── */
+.drive-layout{display:flex;gap:20px;align-items:flex-start}
+.drive-list{flex:1;min-width:0}
+.drive-panel{width:272px;flex-shrink:0;background:var(--white);border:1px solid var(--border);border-radius:var(--rlg);box-shadow:var(--sh);position:sticky;top:80px;overflow:hidden;transition:all .2s}
+/* ── CLIENT SUMMARY PANEL ── */
+.dp-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 20px;gap:10px;text-align:center;color:var(--text-light);font-size:12px;min-height:200px;line-height:1.6}
+.dp-empty svg{opacity:.3}
+.dp-header{padding:14px 16px;border-bottom:1px solid var(--border);background:var(--cream)}
+.dp-folder-name{font-size:13px;font-weight:600;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dp-source{font-size:10px;color:var(--text-light);font-family:'DM Mono',monospace;margin-top:2px}
+.dp-section{padding:12px 16px;border-bottom:1px solid var(--border)}
+.dp-section:last-child{border-bottom:none}
+.dp-section-title{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-light);font-family:'DM Mono',monospace;margin-bottom:8px}
+.dp-eng-card{background:var(--cream);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px}
+.dp-eng-header{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:2px}
+.dp-eng-title{font-size:12px;font-weight:600;color:var(--navy);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dp-eng-type{font-size:10px;color:var(--text-light);margin-bottom:8px;font-family:'DM Mono',monospace}
+.dp-mini-pipeline{display:flex;gap:3px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+.dp-pdot{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;cursor:default}
+.dp-pdot.ns{background:var(--cream);border:1.5px solid var(--border-dark);color:var(--text-light)}
+.dp-pdot.ip{background:var(--orange-bg);border:1.5px solid var(--orange);color:var(--orange)}
+.dp-pdot.dn{background:var(--green-bg);border:1.5px solid var(--green);color:var(--green)}
+.dp-no-link{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text-light);padding:4px 0}
+.dp-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.dp-stat{background:var(--cream);border-radius:var(--r);padding:8px 10px;text-align:center;border:1px solid var(--border)}
+.dp-stat-val{font-family:'DM Serif Display',serif;font-size:20px;color:var(--navy);line-height:1}
+.dp-stat-lbl{font-size:9px;color:var(--text-light);text-transform:uppercase;letter-spacing:.08em;font-family:'DM Mono',monospace;margin-top:2px}
+.dp-type-row{display:flex;align-items:center;gap:7px;padding:3px 0}
+.dp-type-label{flex:1;font-size:11px;color:var(--text-mid)}
+.dp-type-count{font-size:11px;font-weight:600;color:var(--navy);font-family:'DM Mono',monospace}
+.dp-recent-file{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--cream);border:1px solid var(--border);border-radius:var(--r);text-decoration:none;transition:all .15s}
+.dp-recent-file:hover{border-color:var(--navy);background:var(--white)}
+/* ── SKELETON LOADING ── */
+@keyframes shimmer{0%{background-position:-600px 0}100%{background-position:600px 0}}
+.skel{background:linear-gradient(90deg,#eef0f2 25%,#e2e5e8 50%,#eef0f2 75%);background-size:1200px 100%;animation:shimmer 1.6s infinite;border-radius:4px}
+.skel-row{background:var(--white);border:1px solid var(--border);border-radius:var(--rlg);padding:16px 20px;display:flex;align-items:center;gap:14px;margin-bottom:12px}
+/* ── LOG LOAD MORE ── */
+.log-load-more{display:flex;justify-content:center;padding:14px;border-top:1px solid var(--border)}
 </style>
 </style>
 </head>
@@ -477,8 +515,18 @@ body{font-family:'Outfit',sans-serif;background:var(--cream);color:var(--text);m
           <span class="filter-val" id="drive-filter-val"></span>
           <button class="btn" style="padding:4px 12px;font-size:12px" onclick="clearDriveFilter()">Show All</button>
         </div>
-        <div id="drive-content">
-          <div class="empty"><h3>Loading files...</h3><p>Fetching your client folders from Google Drive.</p></div>
+        <div class="drive-layout">
+          <div class="drive-list">
+            <div id="drive-content">
+              <div class="empty"><h3>Loading files...</h3><p>Fetching your client folders from Google Drive.</p></div>
+            </div>
+          </div>
+          <div id="drive-panel">
+            <div class="dp-empty">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 7h5l2 2h11v12H3V7z"/><circle cx="10" cy="14" r="2"/><path d="M10 16v2M8 18h4"/></svg>
+              <span>Open a client folder<br>to view its summary</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1013,17 +1061,24 @@ function det(label,val) {
 function renderLog() {
   var el = document.getElementById('log-content');
   var countEl = document.getElementById('log-count');
-  var entries = activityLog.slice(0,60);
-  if (countEl) countEl.textContent = entries.length + (activityLog.length > 60 ? '+ entries' : ' entr'+(entries.length===1?'y':'ies'));
+  if (countEl) countEl.textContent = activityLog.length + ' entr'+(activityLog.length===1?'y':'ies');
   if (!activityLog.length) {
     el.innerHTML = '<div class="empty"><h3>No activity yet</h3><p>Step updates and engagement actions will appear here.</p></div>';
     return;
   }
+  var entries = activityLog.slice(0, logDisplayLimit);
+  var hasMore = activityLog.length > logDisplayLimit;
   el.innerHTML = '<table class="log-tbl"><thead><tr><th>Time</th><th>Client</th><th>Action</th><th>Details</th><th>By</th></tr></thead><tbody>'
     +entries.map(function(l){
       return '<tr><td style="font-family:monospace;white-space:nowrap;font-size:11px">'+fmtTs(l.ts)+'</td>'
-        +'<td>'+l.client+'</td><td><strong>'+l.action+'</strong></td><td>'+l.detail+'</td><td>'+l.user+'</td></tr>';
-    }).join('')+'</tbody></table>';
+        +'<td>'+escHtml(l.client)+'</td><td><strong>'+escHtml(l.action)+'</strong></td><td>'+escHtml(l.detail)+'</td><td>'+escHtml(l.user)+'</td></tr>';
+    }).join('')+'</tbody></table>'
+    +(hasMore ? '<div class="log-load-more"><button class="btn" onclick="loadMoreLog()">Load '+(activityLog.length-logDisplayLimit)+' more entries</button></div>' : '');
+}
+
+function loadMoreLog() {
+  logDisplayLimit += 60;
+  renderLog();
 }
 
 function toggleLogAccordion() {
@@ -1226,6 +1281,8 @@ var driveSearchTerm = '';
 var driveSort = 'alpha';
 var driveLinkedOnly = false;
 var driveFolderFilter = null; // {folderId, label} — set when engagement selected
+var activePanelFolderId = null;
+var logDisplayLimit = 60;
 // folderLinks: engagementId -> {folderId, folderName} — persisted in localStorage
 var folderLinks = {};
 try { folderLinks = JSON.parse(localStorage.getItem('ia_folder_links')||'{}'); } catch(e){}
@@ -1365,9 +1422,20 @@ function loadDriveFiles() {
 
 function refreshDriveFiles() {
   driveLoaded = false;
+  activePanelFolderId = null;
+  var panel = document.getElementById('drive-panel');
+  if (panel) panel.innerHTML = '<div class="dp-empty"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 7h5l2 2h11v12H3V7z"/></svg><span>Open a client folder<br>to view its summary</span></div>';
   document.getElementById('drive-status').textContent = 'Fetching...';
+  // Show skeleton rows while loading
   document.getElementById('drive-content').innerHTML =
-    '<div class="empty"><h3>Loading...</h3><p>Fetching folders from Google Drive.</p></div>';
+    [1,2,3,4,5].map(function() {
+      return '<div class="skel-row">'
+        +'<div class="skel" style="width:30px;height:30px;border-radius:7px;flex-shrink:0"></div>'
+        +'<div style="flex:1"><div class="skel" style="height:13px;width:55%;margin-bottom:7px"></div>'
+        +'<div class="skel" style="height:10px;width:30%"></div></div>'
+        +'<div class="skel" style="width:56px;height:22px;border-radius:10px"></div>'
+        +'</div>';
+    }).join('');
 
   Promise.all(DRIVE_SOURCES.map(fetchSourceData)).then(function(results) {
     driveData = results;
@@ -1568,7 +1636,10 @@ function renderDriveFiles() {
   });
 
   if (!totalVisible) {
-    container.innerHTML = '<div class="empty"><h3>No results</h3><p>No folders match the current filter.</p></div>';
+    var emptyMsg = driveSearchTerm
+      ? '<div class="empty"><h3>No results for "'+escHtml(driveSearchTerm)+'"</h3><p>Try a different search term or clear the filter.</p></div>'
+      : '<div class="empty"><h3>No folders found</h3><p>No folders match the current filter.</p></div>';
+    container.innerHTML = emptyMsg;
     return;
   }
   container.innerHTML = html;
@@ -1577,6 +1648,9 @@ function renderDriveFiles() {
   if (totalVisible === 1) {
     var firstRow = container.querySelector('.client-row');
     if (firstRow) openClientRow(firstRow.id);
+  } else if (activePanelFolderId) {
+    // Re-render panel with existing selection (DOM was reset by innerHTML)
+    renderDrivePanel(activePanelFolderId);
   }
 }
 
@@ -1597,6 +1671,10 @@ function openClientRow(domId) {
   var hdr = document.querySelector('#'+domId+' .cr-header');
   if (body) body.classList.add('open');
   if (hdr) hdr.classList.add('open');
+  // Extract folderId from domId (domId = 'cr-' + folderId)
+  var fid = domId.replace(/^cr-/, '');
+  activePanelFolderId = fid;
+  renderDrivePanel(fid);
 }
 
 function selectTab(domId, sfId) {
@@ -1764,6 +1842,121 @@ function selectLinkFolder(folderId, folderName) {
       existing.remove();
     }
   });
+}
+
+// ── DRIVE PANEL ───────────────────────────────────────────────────
+function renderDrivePanel(folderId) {
+  var panel = document.getElementById('drive-panel');
+  if (!panel) return;
+
+  // Find client data
+  var clientData = null, sourceLabel = '';
+  driveData.forEach(function(sg) {
+    sg.clients.forEach(function(c) {
+      if (c.folder.id === folderId) { clientData = c; sourceLabel = sg.source.label; }
+    });
+  });
+
+  if (!clientData) {
+    panel.innerHTML = '<div class="dp-empty"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 7h5l2 2h11v12H3V7z"/></svg><span>Open a client folder<br>to view its summary</span></div>';
+    return;
+  }
+
+  // Aggregate all files
+  var allFiles = clientData.rootFiles.slice();
+  Object.keys(clientData.subFolders).forEach(function(sfId) {
+    allFiles = allFiles.concat(clientData.subFolders[sfId].files);
+  });
+
+  // File type counts
+  var typeCounts = {};
+  allFiles.forEach(function(f) {
+    var ico = getMimeLabel(f.mimeType, f.name);
+    typeCounts[ico.cls] = (typeCounts[ico.cls] || 0) + 1;
+  });
+
+  // Most recently modified file
+  var recentFile = allFiles.slice().sort(function(a,b) {
+    return new Date(b.modifiedTime||0) - new Date(a.modifiedTime||0);
+  })[0];
+
+  // Linked engagement
+  var linkedEng = getEngagementForFolderId(folderId);
+  var totalFiles = allFiles.length;
+  var subCount = Object.keys(clientData.subFolders).length;
+
+  // Engagement section
+  var engSection = '';
+  if (linkedEng) {
+    var sts = STEPS.map(function(_,i){ return (stepStatuses[linkedEng.id+'_'+i]||{}).status||'ns'; });
+    var done = sts.filter(function(s){return s==='dn';}).length;
+    var pct = Math.round(done/STEPS.length*100);
+    var st = getEngOverallStatus(linkedEng);
+    var miniDots = STEPS.map(function(s,i) {
+      return '<div class="dp-pdot '+sts[i]+'" title="'+s.name+'">'+(i+1)+'</div>';
+    }).join('');
+    engSection = '<div class="dp-eng-card">'
+      +'<div class="dp-eng-header">'
+      +'<div class="dp-eng-title">'+escHtml(linkedEng.client)+'</div>'
+      +'<span class="cf-eng-badge '+st+'">'+pct+'%</span>'
+      +'</div>'
+      +'<div class="dp-eng-type">'+escHtml(linkedEng.type)+(linkedEng.tp?' \u00b7 '+escHtml(linkedEng.tp):'')+'</div>'
+      +'<div class="dp-mini-pipeline">'+miniDots+'</div>'
+      +'<button class="btn" style="font-size:11px;padding:5px 10px;width:100%;justify-content:center" onclick="selectEng(\''+linkedEng.id+'\')">View Engagement</button>'
+      +'</div>';
+  } else {
+    engSection = '<div class="dp-no-link">'
+      +'<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 6L14 2M14 2h-4M14 2v4M6 10L2 14M2 14h4M2 14v-4"/></svg>'
+      +'<span>No engagement linked</span>'
+      +'</div>';
+  }
+
+  // File type breakdown
+  var typeLabels = {'ico-xlsx':'Excel','ico-gsheet':'Google Sheet','ico-docx':'Word','ico-gdoc':'Google Doc','ico-pdf':'PDF','ico-pptx':'PowerPoint','ico-other':'Other'};
+  var typeHtml = Object.keys(typeCounts).map(function(cls) {
+    var lbl = typeLabels[cls] || cls.replace('ico-','');
+    return '<div class="dp-type-row">'
+      +'<div class="file-ico '+cls+'" style="width:20px;height:20px;font-size:8px;border-radius:4px">'+cls.replace('ico-','').toUpperCase().substring(0,3)+'</div>'
+      +'<div class="dp-type-label">'+lbl+'</div>'
+      +'<div class="dp-type-count">'+typeCounts[cls]+'</div>'
+      +'</div>';
+  }).join('');
+  if (!typeHtml) typeHtml = '<div style="font-size:12px;color:var(--text-light)">No files yet</div>';
+
+  // Most recent file
+  var recentHtml = '';
+  if (recentFile) {
+    var ico = getMimeLabel(recentFile.mimeType, recentFile.name);
+    var url = recentFile.webViewLink || getFileUrl(recentFile);
+    recentHtml = '<a class="dp-recent-file" href="'+url+'" target="_blank" rel="noopener">'
+      +'<div class="file-ico '+ico.cls+'" style="width:22px;height:22px;font-size:8px;border-radius:4px">'+ico.label.substring(0,3)+'</div>'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="font-size:11px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escHtml(recentFile.name)+'</div>'
+      +'<div style="font-size:10px;color:var(--text-light);font-family:\'DM Mono\',monospace">'+fmtDriveDate(recentFile.modifiedTime)+'</div>'
+      +'</div>'
+      +'<svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="var(--text-light)" stroke-width="1.5"><path d="M2 10L10 2M10 2H5M10 2v5"/></svg>'
+      +'</a>';
+  }
+
+  var folderUrl = 'https://drive.google.com/drive/folders/'+folderId;
+
+  panel.innerHTML =
+    '<div class="dp-header">'
+    +'<div class="dp-folder-name" title="'+escHtml(clientData.folder.name)+'">'+escHtml(clientData.folder.name)+'</div>'
+    +'<div class="dp-source">'+escHtml(sourceLabel)+'</div>'
+    +'</div>'
+    +'<div class="dp-section"><div class="dp-section-title">Linked Engagement</div>'+engSection+'</div>'
+    +'<div class="dp-section"><div class="dp-section-title">Files Summary</div>'
+    +'<div class="dp-stats">'
+    +'<div class="dp-stat"><div class="dp-stat-val">'+totalFiles+'</div><div class="dp-stat-lbl">Files</div></div>'
+    +'<div class="dp-stat"><div class="dp-stat-val">'+subCount+'</div><div class="dp-stat-lbl">Folders</div></div>'
+    +'</div>'
+    +typeHtml
+    +'</div>'
+    +(recentFile ? '<div class="dp-section"><div class="dp-section-title">Most Recently Modified</div>'+recentHtml+'</div>' : '')
+    +'<div class="dp-section">'
+    +'<a class="btn btn-navy" style="width:100%;justify-content:center;text-decoration:none;font-size:12px" href="'+folderUrl+'" target="_blank" rel="noopener">&#128194; Open Folder in Drive</a>'
+    +'</div>';
 }
 
 // ── BOOT ──────────────────────────────────────────────────────────
