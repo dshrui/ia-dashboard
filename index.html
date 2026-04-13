@@ -1,0 +1,2633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IA Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#0f1f3d;--navy-mid:#1b2f52;--gold:#c9a84c;--gold-light:#f0d898;
+  --cream:#faf8f4;--white:#fff;--text:#1a1a2e;--text-mid:#4a5568;--text-light:#8896a7;
+  --border:#e2e8f0;--border-dark:#cbd5e0;
+  --green:#2d7a4f;--green-bg:#edf7f2;--orange:#b45309;--orange-bg:#fffbeb;
+  --r:10px;--rlg:16px;--sh:0 2px 12px rgba(15,31,61,.08);--shlg:0 8px 32px rgba(15,31,61,.14);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Outfit',sans-serif;background:var(--cream);color:var(--text);min-height:100vh;font-size:14px}
+#auth{position:fixed;inset:0;background:var(--navy);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;z-index:999}
+.auth-logo{font-family:'DM Serif Display',serif;font-size:38px;color:var(--gold-light);text-align:center}
+.auth-tagline{font-size:11px;color:rgba(255,255,255,.35);letter-spacing:.14em;text-transform:uppercase;font-family:'DM Mono',monospace}
+.auth-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:var(--rlg);padding:32px 40px;display:flex;flex-direction:column;align-items:center;gap:20px;min-width:320px}
+.auth-card p{font-size:13px;color:rgba(255,255,255,.5);text-align:center;line-height:1.6;max-width:260px}
+.signin-btn{display:flex;align-items:center;gap:12px;padding:13px 24px;background:var(--white);border:none;border-radius:var(--r);font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;color:var(--navy);cursor:pointer;transition:all .2s;box-shadow:var(--shlg);width:100%;justify-content:center}
+.signin-btn:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(0,0,0,.35)}
+.signin-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+#auth-status{font-size:12px;color:rgba(255,255,255,.4);font-family:'DM Mono',monospace;min-height:18px;text-align:center}
+.app{display:none;min-height:100vh}
+.app.ready{display:flex}
+.sidebar{width:256px;background:var(--navy);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100}
+.main{margin-left:256px;flex:1;display:flex;flex-direction:column;min-height:100vh}
+.sb-logo{padding:24px 20px 18px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sb-wordmark{font-family:'DM Serif Display',serif;font-size:17px;color:var(--gold-light)}
+.sb-sub{font-size:9px;color:rgba(255,255,255,.25);letter-spacing:.14em;text-transform:uppercase;font-family:'DM Mono',monospace;margin-top:3px}
+.sb-nav{padding:14px 10px;flex:1;overflow-y:auto}
+.nav-lbl{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.2);font-family:'DM Mono',monospace;padding:10px 10px 4px}
+.nav-btn{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;color:rgba(255,255,255,.5);cursor:pointer;transition:all .15s;font-size:13px;border:none;background:none;width:100%;text-align:left}
+.nav-btn:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.85)}
+.nav-btn.on{background:rgba(201,168,76,.15);color:var(--gold-light);font-weight:500}
+.sb-engs{padding:0 10px 8px;max-height:260px;overflow-y:auto}
+.eng-chip{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:8px;cursor:pointer;transition:all .15s;margin-bottom:2px}
+.eng-chip:hover{background:rgba(255,255,255,.07)}
+.eng-chip.on{background:rgba(201,168,76,.12)}
+.eng-name{font-size:12px;color:rgba(255,255,255,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+.eng-chip.on .eng-name{color:var(--gold-light)}
+.eng-pct{font-size:10px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.25)}
+.eng-chip.on .eng-pct{color:var(--gold)}
+.eng-del{width:16px;height:16px;border-radius:3px;border:none;background:transparent;color:rgba(255,255,255,.25);cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;padding:0;line-height:1;flex-shrink:0}
+.eng-del:hover{background:rgba(197,48,48,.3);color:#fc8181}
+.eng-chip.on .eng-pct{color:var(--gold)}
+.sb-foot{padding:14px 20px;border-top:1px solid rgba(255,255,255,.08)}
+.user-row{display:flex;align-items:center;gap:10px}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--navy-mid);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--gold-light);flex-shrink:0}
+.user-n{font-size:12px;color:rgba(255,255,255,.7);font-weight:500}
+.user-r{font-size:10px;color:rgba(255,255,255,.28)}
+.topbar{background:var(--white);border-bottom:1px solid var(--border);padding:16px 36px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.tb-title{font-family:'DM Serif Display',serif;font-size:19px;color:var(--navy)}
+.tb-sub{font-size:11px;color:var(--text-light);margin-top:1px}
+.tb-actions{display:flex;gap:8px;align-items:center}
+.btn{padding:8px 15px;border-radius:var(--r);border:1px solid var(--border-dark);background:var(--white);color:var(--text);font-family:'Outfit',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{background:var(--cream);border-color:var(--navy)}
+.btn-navy{background:var(--navy);color:var(--white);border-color:var(--navy)}
+.btn-navy:hover{background:var(--navy-mid);border-color:var(--navy-mid)}
+.btn-gold{background:var(--gold);color:var(--navy);border-color:var(--gold);font-weight:600}
+.btn-gold:hover{background:var(--gold-light)}
+.content{padding:32px 36px;flex:1}
+.view{display:none}
+.view.on{display:block}
+#view-drive, #view-settings, #view-log, #view-prompts{max-width:1200px}
+.metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:24px}
+.mc{background:var(--white);border:1px solid var(--border);border-radius:var(--rlg);padding:22px;box-shadow:var(--sh)}
+.mc-lbl{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-light);font-family:'DM Mono',monospace;margin-bottom:6px}
+.mc-val{font-family:'DM Serif Display',serif;font-size:30px;color:var(--navy);line-height:1}
+.mc-val.gold{color:var(--gold)}
+.mc-val.green{color:var(--green)}
+.mc-val.orange{color:var(--orange)}
+.pipeline{display:flex;align-items:center;background:var(--white);border:1px solid var(--border);border-radius:var(--rlg);padding:18px 26px;margin-bottom:24px;box-shadow:var(--sh);overflow-x:auto;gap:0}
+.pn{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:90px}
+.pdot{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;transition:all .2s}
+.pdot.ns{background:var(--cream);border:2px solid var(--border-dark);color:var(--text-light)}
+.pdot.ip{background:var(--orange-bg);border:2px solid var(--orange);color:var(--orange)}
+.pdot.dn{background:var(--green-bg);border:2px solid var(--green);color:var(--green)}
+.plbl{font-size:10px;color:var(--text-light);text-align:center;line-height:1.3;max-width:80px}
+.pline{flex:1;height:2px;background:var(--border);min-width:16px;margin-bottom:18px}
+.pline.dn{background:var(--green)}
+.steps{display:flex;flex-direction:column;gap:14px;margin-bottom:24px}
+.sc{background:var(--white);border:1px solid var(--border);border-radius:var(--rlg);box-shadow:var(--sh);position:relative;overflow:hidden;transition:all .2s;display:grid;grid-template-columns:260px 1fr;min-height:140px}
+.sc::before{content:'';position:absolute;top:0;left:0;bottom:0;width:3px;background:var(--border);transition:background .2s}
+.sc.ip::before{background:var(--orange)}
+.sc.dn::before{background:var(--green)}
+.sc:hover{box-shadow:var(--shlg)}
+.sc-left{padding:18px 20px 14px 24px;display:flex;flex-direction:column;border-right:1px solid var(--border)}
+.sc-right{padding:14px 18px;display:flex;flex-direction:column;background:var(--cream);min-width:0}
+.sc-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px}
+.sc-num{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;font-family:'DM Mono',monospace;flex-shrink:0}
+.sc-num.ns{background:var(--cream);color:var(--text-light)}
+.sc-num.ip{background:var(--orange-bg);color:var(--orange)}
+.sc-num.dn{background:var(--green-bg);color:var(--green)}
+.sc-badge{font-size:9px;padding:3px 8px;border-radius:20px;font-weight:500;font-family:'DM Mono',monospace}
+.sc-badge.ns{background:var(--cream);color:var(--text-light)}
+.sc-badge.ip{background:var(--orange-bg);color:var(--orange)}
+.sc-badge.dn{background:var(--green-bg);color:var(--green)}
+.sc-title{font-size:13px;font-weight:600;color:var(--navy);margin-bottom:4px;line-height:1.3}
+.sc-desc{font-size:12px;color:var(--text-mid);line-height:1.6;margin-bottom:10px;flex:1}
+.sc-foot{display:flex;align-items:center;justify-content:space-between;padding-top:10px;border-top:1px solid var(--border);margin-top:auto}
+.sc-dep{font-size:10px;color:var(--text-light);font-family:'DM Mono',monospace}
+.cycle-btn{font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--border-dark);background:var(--cream);color:var(--text-mid);cursor:pointer;font-family:'Outfit',sans-serif;transition:all .15s}
+.cycle-btn:hover{background:var(--navy);color:var(--white);border-color:var(--navy)}
+.sc-files-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.sc-files-label{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-light);font-family:'DM Mono',monospace;display:flex;align-items:center;gap:5px}
+.sc-files-count{font-size:10px;font-family:'DM Mono',monospace;color:var(--text-light);background:var(--white);border:1px solid var(--border);border-radius:8px;padding:1px 6px}
+.sc-files-list{flex:1;overflow-y:auto;max-height:180px;display:flex;flex-direction:column;gap:2px}
+.sc-file-link{display:flex;align-items:center;gap:7px;padding:5px 7px;border-radius:6px;text-decoration:none;transition:background .12s;border:1px solid transparent}
+.sc-file-link:hover{background:var(--white);border-color:var(--border)}
+.sc-file-name{font-size:11px;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.4}
+.sc-file-date{font-size:10px;color:var(--text-light);font-family:'DM Mono',monospace;white-space:nowrap;flex-shrink:0}
+.sc-files-empty{font-size:11px;color:var(--text-light);font-style:italic;padding:8px 4px}
+.sc-files-prompt{font-size:11px;color:var(--gold);font-family:'DM Mono',monospace;padding:8px 4px;cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px}
+.sc-files-prompt:hover{opacity:.75}
+.panel{background:var(--white);border:1px solid var(--border);border-radius:var(--rlg);box-shadow:var(--sh);overflow:hidden;margin-bottom:24px}
+.ph{padding:18px 26px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.ph-title{font-size:13px;font-weight:600;color:var(--navy)}
+.pb{padding:26px}
+.det-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.det-item .lbl{font-size:10px;font-family:'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--text-light);margin-bottom:4px}
+.det-item .val{font-size:13px;color:var(--text)}
+.form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg.full{grid-column:1/-1}
+.flbl{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text-light);font-family:'DM Mono',monospace}
+.finp{padding:8px 11px;border:1px solid var(--border-dark);border-radius:var(--r);font-family:'Outfit',sans-serif;font-size:13px;color:var(--text);background:var(--white);width:100%}
+.finp:focus{outline:none;border-color:var(--navy)}
+.scope-row{display:flex;gap:7px;align-items:center}
+.scope-row .finp{flex:1}
+.scope-remove{width:28px;height:28px;border-radius:6px;border:1px solid var(--border-dark);background:var(--cream);color:var(--text-mid);cursor:pointer;font-size:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif}
+.scope-remove:hover{background:var(--navy);color:var(--white);border-color:var(--navy)}
+.add-scope-btn{font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--border-dark);background:var(--cream);color:var(--navy);cursor:pointer;font-family:'Outfit',sans-serif;font-weight:500;align-self:flex-start}
+.add-scope-btn:hover{background:var(--navy);color:var(--white)}
+.ba-block{background:var(--cream);border:1px solid var(--border-dark);border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.ba-header{display:flex;gap:7px;align-items:center}
+.ba-header .finp{flex:1;font-weight:500}
+.ba-items{display:flex;flex-direction:column;gap:6px;padding-left:12px}
+.ba-item-row{display:flex;gap:7px;align-items:center}
+.ba-item-row .finp{flex:1;font-size:12px}
+.ba-add-item{font-size:10px;padding:3px 8px;border-radius:5px;border:1px solid var(--border-dark);background:var(--white);color:var(--text-mid);cursor:pointer;font-family:'Outfit',sans-serif;align-self:flex-start}
+.ba-add-item:hover{border-color:var(--navy);color:var(--navy)}
+.step-pills{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:13px}
+.sp{padding:5px 13px;border-radius:20px;border:1px solid var(--border-dark);background:var(--white);font-size:12px;color:var(--text-mid);cursor:pointer;transition:all .15s;font-family:'Outfit',sans-serif}
+.sp:hover{border-color:var(--navy);color:var(--navy)}
+.sp.on{background:var(--navy);color:var(--white);border-color:var(--navy)}
+.prompt-out{background:var(--navy);border-radius:var(--rlg);padding:18px;font-family:'DM Mono',monospace;font-size:12px;color:rgba(240,216,152,.9);line-height:1.7;white-space:pre-wrap;min-height:90px;margin-bottom:12px}
+.copy-ok{font-size:12px;color:var(--green);opacity:0;transition:opacity .3s;font-family:'DM Mono',monospace}
+.log-tbl{width:100%;border-collapse:collapse}
+.log-tbl th{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-light);font-family:'DM Mono',monospace;font-weight:500;padding:10px 16px;border-bottom:1px solid var(--border);text-align:left;background:var(--cream)}
+.log-tbl td{padding:11px 16px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text-mid);vertical-align:top}
+.log-tbl tr:last-child td{border-bottom:none}
+.log-tbl tr:hover td{background:var(--cream)}
+/* Activity log accordion */
+.log-accordion{background:var(--white);border:1px solid var(--border);border-radius:var(--rlg);box-shadow:var(--sh);overflow:hidden;margin-bottom:24px}
+.log-accordion-hdr{padding:18px 26px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;transition:background .15s}
+.log-accordion-hdr:hover{background:var(--cream)}
+.log-accordion-hdr-left{display:flex;align-items:center;gap:10px}
+.log-accordion-title{font-size:13px;font-weight:600;color:var(--navy)}
+.log-accordion-count{font-size:11px;font-family:'DM Mono',monospace;color:var(--text-light);background:var(--cream);border:1px solid var(--border);border-radius:10px;padding:2px 8px}
+.log-accordion-sub{font-size:11px;color:var(--text-light)}
+.log-accordion-chevron{color:var(--text-light);font-size:13px;transition:transform .25s;flex-shrink:0}
+.log-accordion-chevron.open{transform:rotate(90deg)}
+.log-accordion-body{display:none;border-top:1px solid var(--border)}
+.log-accordion-body.open{display:block}
+.modal-ov{position:fixed;inset:0;background:rgba(15,31,61,.6);z-index:200;display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+.modal-ov.open{display:flex}
+.modal{background:var(--white);border-radius:var(--rlg);box-shadow:var(--shlg);width:560px;max-width:95vw;max-height:90vh;overflow-y:auto}
+.mh{padding:22px 26px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.mh-title{font-family:'DM Serif Display',serif;font-size:19px;color:var(--navy)}
+.mclose{width:28px;height:28px;border:none;background:var(--cream);border-radius:7px;font-size:15px;cursor:pointer;color:var(--text-mid);display:flex;align-items:center;justify-content:center}
+.mb{padding:22px 26px}
+.mf{padding:14px 26px 22px;display:flex;gap:9px;justify-content:flex-end;border-top:1px solid var(--border)}
+.mfg{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.msec{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-light);font-family:'DM Mono',monospace;grid-column:1/-1;padding-top:8px;border-top:1px solid var(--border);margin-top:4px}
+.toast{position:fixed;bottom:22px;right:22px;background:var(--navy);color:var(--white);padding:11px 18px;border-radius:var(--r);font-size:13px;box-shadow:var(--shlg);z-index:999;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none}
+.toast.ok{border-left:3px solid var(--green);opacity:1;transform:translateY(0)}
+.toast.err{border-left:3px solid #c53030;opacity:1;transform:translateY(0)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ldo{position:fixed;inset:0;background:rgba(250,248,244,.85);z-index:150;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+.ldo.show{display:flex}
+.spin-lg{width:34px;height:34px;border:3px solid var(--border-dark);border-top-color:var(--navy);border-radius:50%;animation:spin .8s linear infinite}
+.ld-txt{font-family:'DM Mono',monospace;font-size:12px;color:var(--text-light)}
+.empty{text-align:center;padding:56px 24px;color:var(--text-light)}
+.empty h3{font-size:15px;color:var(--text-mid);font-weight:500;margin-bottom:7px}
+.empty p{font-size:13px;line-height:1.6;max-width:280px;margin:0 auto 18px}
+/* ── DRIVE FILES — full-width list layout ── */
+.drive-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.drive-topbar-left{display:flex;flex-direction:column;gap:3px;padding-left:14px;border-left:3px solid var(--gold)}
+.drive-topbar-title{font-family:'DM Serif Display',serif;font-size:19px;color:var(--navy)}
+.drive-topbar-sub{font-size:11px;color:var(--text-light)}
+.drive-topbar-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.drive-filter-bar{display:flex;align-items:center;gap:8px;margin-bottom:16px;padding:10px 16px;background:var(--white);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh)}
+.drive-filter-bar .filter-label{font-size:11px;font-weight:600;color:var(--text-light);font-family:'DM Mono',monospace;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+.drive-filter-bar .filter-val{font-size:12px;font-weight:600;color:var(--navy);flex:1}
+.sort-btn.linked-only{border-color:var(--gold);color:var(--gold)}
+.sort-btn.linked-only.on{background:var(--gold);color:var(--navy);border-color:var(--gold)}
+/* source section */
+.drive-source-section{margin-bottom:28px}
+.drive-source-label{display:inline-flex;align-items:center;gap:7px;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-light);font-family:'DM Mono',monospace;margin-bottom:12px;padding:4px 12px;background:var(--white);border:1px solid var(--border);border-radius:20px}
+/* client row — full width */
+.client-row{background:var(--white);border:1px solid var(--border);border-radius:var(--rlg);box-shadow:var(--sh);overflow:hidden;margin-bottom:12px}
+.cr-header{display:flex;align-items:center;gap:14px;padding:14px 20px;cursor:pointer;transition:background .15s;user-select:none}
+.cr-header:hover{background:var(--cream)}
+.cr-header.linked{border-left:3px solid var(--gold)}
+.cr-icon{width:30px;height:30px;border-radius:7px;background:rgba(201,168,76,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cr-name{font-size:13px;font-weight:600;color:var(--navy);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cr-meta{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.cr-link-btn{padding:3px 9px;border-radius:6px;border:1px solid var(--border-dark);background:var(--cream);font-size:10px;color:var(--text-mid);cursor:pointer;font-family:'Outfit',sans-serif;transition:all .15s;white-space:nowrap}
+.cr-link-btn:hover{background:var(--navy);color:var(--white);border-color:var(--navy)}
+.cr-link-btn.linked{background:rgba(201,168,76,.12);color:var(--gold);border-color:rgba(201,168,76,.3)}
+.cr-chevron{color:var(--text-light);transition:transform .2s;font-size:11px;flex-shrink:0}
+.cr-header.open .cr-chevron{transform:rotate(90deg)}
+/* subfolders row — horizontal tabs */
+.cr-body{display:none;border-top:1px solid var(--border)}
+.cr-body.open{display:flex}
+.cr-tabs{width:200px;flex-shrink:0;border-right:1px solid var(--border);background:var(--cream)}
+.cr-tab{display:flex;align-items:center;gap:7px;padding:10px 14px;font-size:11px;font-weight:600;color:var(--text-mid);cursor:pointer;transition:all .15s;border-bottom:1px solid var(--border);font-family:'DM Mono',monospace;letter-spacing:.02em;user-select:none}
+.cr-tab:last-child{border-bottom:none}
+.cr-tab:hover{background:rgba(255,255,255,.7);color:var(--navy)}
+.cr-tab.on{background:var(--white);color:var(--navy);font-weight:700;box-shadow:inset 3px 0 0 var(--gold)}
+.cr-tab-count{margin-left:auto;font-size:10px;color:var(--text-light);font-weight:400}
+.cr-files-pane{flex:1;min-width:0;min-height:160px;max-height:420px;overflow-y:auto}
+.cr-files-upload{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid var(--border);background:var(--cream)}
+.cr-files-upload-label{font-size:10px;color:var(--text-light);font-family:'DM Mono',monospace;letter-spacing:.06em;text-transform:uppercase}
+.cf-file{display:flex;align-items:center;gap:10px;padding:8px 14px;text-decoration:none;transition:background .12s;border-bottom:1px solid var(--border)}
+.cf-file:last-child{border-bottom:none}
+.cf-file:hover{background:var(--cream)}
+.file-ico{width:26px;height:26px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;font-family:'DM Mono',monospace}
+.ico-xlsx{background:#e6f4ea;color:#1e7e34}
+.ico-docx{background:#e8f0fe;color:#1a73e8}
+.ico-pdf{background:#fce8e6;color:#c5221f}
+.ico-pptx{background:#fef3e2;color:#e37400}
+.ico-gsheet{background:#e6f4ea;color:#0f9d58}
+.ico-gdoc{background:#e8f0fe;color:#4285f4}
+.ico-other{background:var(--cream);color:var(--text-light)}
+.cf-file-name{font-size:12px;color:var(--text);flex:1;min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.4}
+.cf-file-date{font-size:10px;color:var(--text-light);font-family:'DM Mono',monospace;white-space:nowrap;flex-shrink:0}
+.cf-empty{padding:28px 16px;font-size:12px;color:var(--text-light);text-align:center;font-style:italic}
+/* engagement status badge on drive row */
+.cf-eng-badge{padding:2px 8px;border-radius:10px;font-size:10px;font-family:'DM Mono',monospace;font-weight:600;flex-shrink:0}
+.cf-eng-badge.ns{background:var(--cream);color:var(--text-light);border:1px solid var(--border)}
+.cf-eng-badge.ip{background:var(--orange-bg);color:var(--orange);border:1px solid var(--orange)}
+.cf-eng-badge.dn{background:var(--green-bg);color:var(--green);border:1px solid var(--green)}
+/* upload button */
+.sf-upload-btn{padding:3px 9px;border-radius:5px;border:1px solid var(--border-dark);background:var(--white);font-size:10px;color:var(--text-mid);cursor:pointer;font-family:'Outfit',sans-serif;text-decoration:none;display:inline-flex;align-items:center;gap:3px;transition:all .15s;white-space:nowrap}
+.sf-upload-btn:hover{background:var(--navy);color:var(--white);border-color:var(--navy)}
+/* sort controls */
+.drive-sort-btns{display:flex;gap:4px}
+.sort-btn{padding:5px 10px;border-radius:6px;border:1px solid var(--border-dark);background:var(--white);font-size:11px;color:var(--text-mid);cursor:pointer;font-family:'Outfit',sans-serif;transition:all .15s}
+.sort-btn.on{background:var(--navy);color:var(--white);border-color:var(--navy)}
+.drive-search{padding:7px 12px;border:1px solid var(--border-dark);border-radius:var(--r);font-family:'Outfit',sans-serif;font-size:13px;color:var(--text);width:200px}
+.drive-search:focus{outline:none;border-color:var(--navy)}
+.drive-status{font-size:11px;color:var(--text-light);font-family:'DM Mono',monospace}
+/* step file count badge */
+.sc-files-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--text-light);font-family:'DM Mono',monospace;margin-top:4px;margin-bottom:8px}
+.sc-files-badge.has-files{color:var(--green)}
+.sc-files-badge.clickable{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:2px}
+.sc-files-badge.clickable:hover{opacity:.75}
+/* step folder category label */
+.sc-folder-cat{display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--text-light);font-family:'DM Mono',monospace;margin-bottom:6px;padding:2px 7px;background:var(--cream);border-radius:4px;border:1px solid var(--border)}
+/* step last-updated footer */
+.sc-updated{font-size:10px;color:var(--text-light);font-family:'DM Mono',monospace;margin-top:6px;padding-top:6px;border-top:1px solid var(--border)}
+/* dependency warning on step cards */
+.sc-dep-warn{font-size:10px;color:var(--orange);font-family:'DM Mono',monospace;margin-bottom:8px;padding:4px 8px;background:var(--orange-bg);border-radius:5px;display:none}
+.sc-dep-warn.show{display:block}
+/* team member chip */
+.team-chip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.25);font-size:10px;color:var(--gold);font-family:'DM Mono',monospace;margin-right:4px;margin-bottom:4px}
+/* link modal */
+.link-modal-list{display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto}
+.link-opt{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:var(--r);cursor:pointer;transition:all .15s}
+.link-opt:hover{border-color:var(--navy);background:var(--cream)}
+.link-opt.on{border-color:var(--gold);background:rgba(201,168,76,.06)}
+.link-opt-name{font-size:12px;font-weight:500;color:var(--navy);flex:1}
+.link-opt-source{font-size:10px;color:var(--text-light);font-family:'DM Mono',monospace}
+/* ── SIDEBAR ENGAGEMENT SUB-LIST ── */
+.nav-btn-overview{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;color:rgba(255,255,255,.5);cursor:pointer;transition:all .15s;font-size:13px;border:none;background:none;width:100%;text-align:left;justify-content:space-between}
+.nav-btn-overview:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.85)}
+.nav-btn-overview.on{background:rgba(201,168,76,.15);color:var(--gold-light);font-weight:500}
+.nav-btn-overview-left{display:flex;align-items:center;gap:9px}
+.nav-ov-chevron{font-size:10px;color:rgba(255,255,255,.25);transition:transform .2s;flex-shrink:0}
+.nav-ov-chevron.open{transform:rotate(90deg)}
+.sb-eng-list{overflow:hidden;transition:max-height .25s ease;max-height:0}
+.sb-eng-list.open{max-height:400px}
+.sb-eng-item{display:flex;align-items:center;justify-content:space-between;padding:7px 10px 7px 34px;border-radius:7px;cursor:pointer;transition:all .15s;margin-bottom:1px}
+.sb-eng-item:hover{background:rgba(255,255,255,.07)}
+.sb-eng-item.on{background:rgba(201,168,76,.1)}
+.sb-eng-item-name{font-size:11px;color:rgba(255,255,255,.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;line-height:1.3}
+.sb-eng-item.on .sb-eng-item-name{color:var(--gold-light)}
+.sb-eng-item-pct{font-size:10px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.22);flex-shrink:0}
+.sb-eng-item.on .sb-eng-item-pct{color:var(--gold)}
+/* ── PROMPT GENERATOR TWO-COLUMN ── */
+#view-prompts{max-width:none}
+.prompts-layout{display:grid;grid-template-columns:1fr 300px;gap:20px;align-items:flex-start}
+/* ── PROMPT HISTORY PANEL ── */
+.ph-panel{background:var(--white);border:1px solid var(--border);border-radius:var(--rlg);box-shadow:var(--sh);overflow:hidden;position:sticky;top:80px}
+.php-header{padding:14px 16px;border-bottom:1px solid var(--border);background:var(--cream);display:flex;align-items:center;justify-content:space-between}
+.php-title{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-light);font-family:'DM Mono',monospace}
+.php-clear{font-size:10px;padding:2px 8px;border-radius:5px;border:1px solid var(--border-dark);background:var(--white);color:var(--text-light);cursor:pointer;font-family:'Outfit',sans-serif;transition:all .15s}
+.php-clear:hover{background:var(--navy);color:var(--white);border-color:var(--navy)}
+.php-list{max-height:520px;overflow-y:auto}
+.php-empty{padding:32px 16px;text-align:center;font-size:12px;color:var(--text-light);font-style:italic}
+.php-item{padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s}
+.php-item:last-child{border-bottom:none}
+.php-item:hover{background:var(--cream)}
+.php-item-meta{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px}
+.php-item-step{font-size:10px;font-weight:600;font-family:'DM Mono',monospace;color:var(--navy);background:rgba(201,168,76,.12);padding:1px 6px;border-radius:4px}
+.php-item-time{font-size:10px;color:var(--text-light);font-family:'DM Mono',monospace}
+.php-item-client{font-size:12px;color:var(--text);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.php-item-preview{font-size:11px;color:var(--text-light);font-family:'DM Mono',monospace;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ── CLIENT FILES TWO-COLUMN ── */
+#view-drive{max-width:none}
+.drive-layout{display:grid;grid-template-columns:1fr 280px;gap:20px;align-items:flex-start}
+.drive-list{min-width:0}
+.drive-panel{background:var(--white);border:1px solid var(--border);border-radius:var(--rlg);box-shadow:var(--sh);overflow:hidden;position:sticky;top:80px}
+.dp-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 16px;gap:10px;text-align:center;color:var(--text-light);font-size:12px;min-height:220px;line-height:1.6}
+.dp-empty svg{opacity:.25}
+.dp-header{padding:13px 16px;border-bottom:1px solid var(--border);background:var(--cream)}
+.dp-folder-name{font-size:12px;font-weight:600;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dp-source{font-size:10px;color:var(--text-light);font-family:'DM Mono',monospace;margin-top:2px}
+.dp-section{padding:12px 16px;border-bottom:1px solid var(--border)}
+.dp-section:last-child{border-bottom:none}
+.dp-section-title{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-light);font-family:'DM Mono',monospace;margin-bottom:8px}
+.dp-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.dp-stat{background:var(--cream);border-radius:var(--r);padding:8px 10px;text-align:center;border:1px solid var(--border)}
+.dp-stat-val{font-family:'DM Serif Display',serif;font-size:20px;color:var(--navy);line-height:1}
+.dp-stat-lbl{font-size:9px;color:var(--text-light);text-transform:uppercase;letter-spacing:.08em;font-family:'DM Mono',monospace;margin-top:2px}
+.dp-type-row{display:flex;align-items:center;gap:7px;padding:3px 0}
+.dp-type-label{flex:1;font-size:11px;color:var(--text-mid)}
+.dp-type-count{font-size:11px;font-weight:600;color:var(--navy);font-family:'DM Mono',monospace}
+.dp-recent-file{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--cream);border:1px solid var(--border);border-radius:var(--r);text-decoration:none;transition:all .15s}
+.dp-recent-file:hover{border-color:var(--navy);background:var(--white)}
+.dp-eng-card{background:var(--cream);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px}
+.dp-eng-name{font-size:12px;font-weight:600;color:var(--navy);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dp-eng-type{font-size:10px;color:var(--text-light);font-family:'DM Mono',monospace;margin-bottom:8px}
+.dp-mini-dots{display:flex;gap:3px;flex-wrap:wrap;margin-bottom:8px}
+.dp-pdot{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600}
+.dp-pdot.ns{background:var(--cream);border:1.5px solid var(--border-dark);color:var(--text-light)}
+.dp-pdot.ip{background:var(--orange-bg);border:1.5px solid var(--orange);color:var(--orange)}
+.dp-pdot.dn{background:var(--green-bg);border:1.5px solid var(--green);color:var(--green)}
+/* ── ACTIVITY LOG FULL VIEW ── */
+.log-full{display:flex;flex-direction:column;gap:0}
+.log-filter-bar{display:flex;align-items:center;gap:10px;padding:14px 0;flex-wrap:wrap;margin-bottom:4px}
+.log-filter-select{padding:7px 12px;border:1px solid var(--border-dark);border-radius:var(--r);font-family:'Outfit',sans-serif;font-size:13px;color:var(--text);background:var(--white);cursor:pointer;min-width:200px}
+.log-filter-select:focus{outline:none;border-color:var(--navy)}
+.log-group{background:var(--white);border:1px solid var(--border);border-radius:var(--rlg);box-shadow:var(--sh);overflow:hidden;margin-bottom:12px}
+.log-group-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 18px;background:var(--cream);border-bottom:1px solid var(--border);cursor:pointer;user-select:none}
+.log-group-hdr:hover{background:rgba(250,248,244,.7)}
+.log-group-label{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-light);font-family:'DM Mono',monospace}
+.log-group-count{font-size:10px;font-family:'DM Mono',monospace;color:var(--text-light);background:var(--border);padding:2px 7px;border-radius:8px}
+.log-group-chevron{color:var(--text-light);font-size:11px;transition:transform .2s}
+.log-group-chevron.open{transform:rotate(90deg)}
+.log-group-body{display:none}
+.log-group-body.open{display:block}
+.settings-section{background:var(--white);border:1px solid var(--border);border-radius:var(--rlg);box-shadow:var(--sh);overflow:hidden;margin-bottom:24px}
+.settings-section-hdr{padding:16px 24px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600;color:var(--navy)}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid var(--border);gap:16px}
+.settings-row:last-child{border-bottom:none}
+.settings-row-label{font-size:13px;color:var(--text);font-weight:500}
+.settings-row-sub{font-size:11px;color:var(--text-light);margin-top:2px}
+.settings-row-val{font-size:12px;color:var(--text-mid);font-family:'DM Mono',monospace;text-align:right}
+/* ── DRIVE TWO-COLUMN LAYOUT ── */
+.drive-layout{display:flex;gap:20px;align-items:flex-start}
+.drive-list{flex:1;min-width:0}
+.drive-panel{width:272px;flex-shrink:0;background:var(--white);border:1px solid var(--border);border-radius:var(--rlg);box-shadow:var(--sh);position:sticky;top:80px;overflow:hidden;transition:all .2s}
+/* ── CLIENT SUMMARY PANEL ── */
+.dp-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 20px;gap:10px;text-align:center;color:var(--text-light);font-size:12px;min-height:200px;line-height:1.6}
+.dp-empty svg{opacity:.3}
+.dp-header{padding:14px 16px;border-bottom:1px solid var(--border);background:var(--cream)}
+.dp-folder-name{font-size:13px;font-weight:600;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dp-source{font-size:10px;color:var(--text-light);font-family:'DM Mono',monospace;margin-top:2px}
+.dp-section{padding:12px 16px;border-bottom:1px solid var(--border)}
+.dp-section:last-child{border-bottom:none}
+.dp-section-title{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-light);font-family:'DM Mono',monospace;margin-bottom:8px}
+.dp-eng-card{background:var(--cream);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px}
+.dp-eng-header{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:2px}
+.dp-eng-title{font-size:12px;font-weight:600;color:var(--navy);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dp-eng-type{font-size:10px;color:var(--text-light);margin-bottom:8px;font-family:'DM Mono',monospace}
+.dp-mini-pipeline{display:flex;gap:3px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+.dp-pdot{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;cursor:default}
+.dp-pdot.ns{background:var(--cream);border:1.5px solid var(--border-dark);color:var(--text-light)}
+.dp-pdot.ip{background:var(--orange-bg);border:1.5px solid var(--orange);color:var(--orange)}
+.dp-pdot.dn{background:var(--green-bg);border:1.5px solid var(--green);color:var(--green)}
+.dp-no-link{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text-light);padding:4px 0}
+.dp-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.dp-stat{background:var(--cream);border-radius:var(--r);padding:8px 10px;text-align:center;border:1px solid var(--border)}
+.dp-stat-val{font-family:'DM Serif Display',serif;font-size:20px;color:var(--navy);line-height:1}
+.dp-stat-lbl{font-size:9px;color:var(--text-light);text-transform:uppercase;letter-spacing:.08em;font-family:'DM Mono',monospace;margin-top:2px}
+.dp-type-row{display:flex;align-items:center;gap:7px;padding:3px 0}
+.dp-type-label{flex:1;font-size:11px;color:var(--text-mid)}
+.dp-type-count{font-size:11px;font-weight:600;color:var(--navy);font-family:'DM Mono',monospace}
+.dp-recent-file{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--cream);border:1px solid var(--border);border-radius:var(--r);text-decoration:none;transition:all .15s}
+.dp-recent-file:hover{border-color:var(--navy);background:var(--white)}
+/* ── SKELETON LOADING ── */
+@keyframes shimmer{0%{background-position:-600px 0}100%{background-position:600px 0}}
+.skel{background:linear-gradient(90deg,#eef0f2 25%,#e2e5e8 50%,#eef0f2 75%);background-size:1200px 100%;animation:shimmer 1.6s infinite;border-radius:4px}
+.skel-row{background:var(--white);border:1px solid var(--border);border-radius:var(--rlg);padding:16px 20px;display:flex;align-items:center;gap:14px;margin-bottom:12px}
+/* ── PANEL RESIZE HANDLE ── */
+#drive-panel-handle{width:8px;cursor:col-resize;flex-shrink:0;display:flex;align-items:center;justify-content:center;position:relative;z-index:10;margin:0 -2px}
+#drive-panel-handle::after{content:'';width:2px;height:48px;background:var(--border-dark);border-radius:2px;transition:background .15s,height .15s}
+#drive-panel-handle:hover::after,#drive-panel-handle.dragging::after{background:var(--gold);height:72px}
+/* ── NESTED FOLDER IN-PANE NAVIGATION ── */
+.cr-subfolder-item{display:flex;align-items:center;gap:9px;padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s;background:rgba(201,168,76,.03)}
+.cr-subfolder-item:hover{background:rgba(201,168,76,.1)}
+.cr-subfolder-icon{width:24px;height:24px;border-radius:6px;background:rgba(201,168,76,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cr-subfolder-name{flex:1;font-size:12px;color:var(--navy);font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cr-subfolder-count{font-size:10px;color:var(--text-light);font-family:'DM Mono',monospace;flex-shrink:0}
+.cr-pane-breadcrumb{display:flex;align-items:center;gap:6px;padding:6px 14px;background:var(--cream);border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s}
+.cr-pane-breadcrumb:hover{background:var(--border)}
+.cr-crumb-trail{display:flex;align-items:center;gap:3px;flex:1;min-width:0;overflow:hidden}
+.cr-crumb{font-size:11px;color:var(--text-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px}
+.cr-crumb.cur{color:var(--navy);font-weight:600}
+.cr-crumb-sep{color:var(--text-light);font-size:10px;flex-shrink:0}
+</style>
+</style>
+</head>
+<body>
+
+<div id="auth">
+  <div class="auth-logo">IA Dashboard</div>
+  <div class="auth-tagline">Engagement Management Suite</div>
+  <div class="auth-card">
+    <p>Sign in with your Google account to access your engagement data.</p>
+    <button class="signin-btn" id="signin-btn" onclick="handleSignIn()">
+      <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Sign in with Google
+    </button>
+    <div id="auth-status">Initialising Google API...</div>
+  </div>
+</div>
+
+<div class="ldo" id="ldo"><div class="spin-lg"></div><div class="ld-txt" id="ld-txt">Loading...</div></div>
+<div class="toast" id="toast"></div>
+
+<div class="modal-ov" id="eng-modal">
+  <div class="modal">
+    <div class="mh"><div class="mh-title">New Engagement</div><button class="mclose" onclick="closeModal()">&#x2715;</button></div>
+    <div class="mb">
+      <div class="mfg">
+        <div class="fg"><label class="flbl">Client Name *</label><input class="finp" id="m-client" placeholder="e.g. Sunsuria Asas Sdn Bhd"></div>
+        <div class="fg"><label class="flbl">Client Code *</label><input class="finp" id="m-code" placeholder="e.g. SASA"></div>
+        <div class="fg"><label class="flbl">Engagement Type *</label><input class="finp" id="m-type" placeholder="e.g. Procurement Audit"></div>
+        <div class="fg"><label class="flbl">Financial Year / Period</label><input class="finp" id="m-period" placeholder="e.g. FY2024"></div>
+        <div class="msec">Scope</div>
+        <div style="grid-column:1/-1">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <label class="flbl">Business Areas &amp; Scope Items</label>
+            <button type="button" class="add-scope-btn" onclick="addModalBA()">+ Add Business Area</button>
+          </div>
+          <div id="modal-ba-list" style="display:flex;flex-direction:column;gap:12px"></div>
+        </div>
+        <div class="fg"><label class="flbl">Framework / Reference</label><input class="finp" id="m-fw" placeholder="e.g. MACC Act S17A"></div>
+        <div class="msec">Parameters</div>
+        <div class="fg"><label class="flbl">Testing Period</label><input class="finp" id="m-tp" placeholder="e.g. Jan-Dec 2024"></div>
+        <div class="fg"><label class="flbl">Risk Level</label><select class="finp" id="m-risk"><option value="">Select...</option><option>High</option><option>Medium</option><option>Low</option></select></div>
+        <div class="msec">Team</div>
+        <div class="fg"><label class="flbl">Senior Auditor (PIC)</label><input class="finp" id="m-pic" placeholder="e.g. Darren"></div>
+        <div class="fg"><label class="flbl">Team Members</label><input class="finp" id="m-team" placeholder="e.g. Ci Hang, Pei Ying"></div>
+        <div class="fg" style="grid-column:1/-1"><label class="flbl">Key Context</label><input class="finp" id="m-ctx" placeholder="e.g. CEO approval >RM500k, related party: Alunan Asas"></div>
+      </div>
+    </div>
+    <div class="mf"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn-gold btn" onclick="saveEngagement()">Save Engagement</button></div>
+  </div>
+</div>
+
+<div class="modal-ov" id="edit-modal">
+  <div class="modal">
+    <div class="mh"><div class="mh-title">Edit Engagement</div><button class="mclose" onclick="closeEditModal()">&#x2715;</button></div>
+    <div class="mb">
+      <div class="mfg">
+        <div class="fg"><label class="flbl">Client Name *</label><input class="finp" id="e-client" placeholder="e.g. Sunsuria Asas Sdn Bhd"></div>
+        <div class="fg"><label class="flbl">Client Code *</label><input class="finp" id="e-code" placeholder="e.g. SASA"></div>
+        <div class="fg"><label class="flbl">Engagement Type *</label><input class="finp" id="e-type" placeholder="e.g. Procurement Audit"></div>
+        <div class="fg"><label class="flbl">Financial Year / Period</label><input class="finp" id="e-period" placeholder="e.g. FY2024"></div>
+        <div class="msec">Scope</div>
+        <div style="grid-column:1/-1">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <label class="flbl">Business Areas &amp; Scope Items</label>
+            <button type="button" class="add-scope-btn" onclick="addEditBA()">+ Add Business Area</button>
+          </div>
+          <div id="edit-ba-list" style="display:flex;flex-direction:column;gap:12px"></div>
+        </div>
+        <div class="fg"><label class="flbl">Framework / Reference</label><input class="finp" id="e-fw" placeholder="e.g. MACC Act S17A"></div>
+        <div class="msec">Parameters</div>
+        <div class="fg"><label class="flbl">Testing Period</label><input class="finp" id="e-tp" placeholder="e.g. Jan-Dec 2024"></div>
+        <div class="fg"><label class="flbl">Risk Level</label><select class="finp" id="e-risk"><option value="">Select...</option><option>High</option><option>Medium</option><option>Low</option></select></div>
+        <div class="msec">Team</div>
+        <div class="fg"><label class="flbl">Senior Auditor (PIC)</label><input class="finp" id="e-pic" placeholder="e.g. Darren"></div>
+        <div class="fg"><label class="flbl">Team Members</label><input class="finp" id="e-team" placeholder="e.g. Ci Hang, Pei Ying"></div>
+        <div class="fg" style="grid-column:1/-1"><label class="flbl">Key Context</label><input class="finp" id="e-ctx" placeholder="e.g. CEO approval >RM500k, related party: Alunan Asas"></div>
+      </div>
+    </div>
+    <div class="mf"><button class="btn" onclick="closeEditModal()">Cancel</button><button class="btn-gold btn" onclick="saveEditEngagement()">Save Changes</button></div>
+  </div>
+</div>
+
+<div class="modal-ov" id="del-modal">
+  <div class="modal" style="width:420px">
+    <div class="mh"><div class="mh-title" style="font-size:16px">Delete Engagement</div><button class="mclose" onclick="document.getElementById('del-modal').classList.remove('open')">&#x2715;</button></div>
+    <div class="mb">
+      <p style="font-size:13px;color:var(--text-mid);line-height:1.6">Are you sure you want to delete <strong id="del-eng-name"></strong>? This will permanently remove the engagement, all step statuses, and activity log entries from Google Sheets.</p>
+      <p style="font-size:12px;color:var(--orange);margin-top:10px;font-family:'DM Mono',monospace">This action cannot be undone.</p>
+    </div>
+    <div class="mf"><button class="btn" onclick="document.getElementById('del-modal').classList.remove('open')">Cancel</button><button class="btn" style="background:#c53030;color:#fff;border-color:#c53030" onclick="executeDeleteEng()">Delete</button></div>
+  </div>
+</div>
+
+<div class="app" id="app">
+  <nav class="sidebar">
+    <div class="sb-logo"><div class="sb-wordmark">IA Dashboard</div><div class="sb-sub">Equinox Advisory</div></div>
+    <div class="sb-nav">
+      <div class="nav-lbl">Views</div>
+      <button class="nav-btn-overview on" id="nav-overview" onclick="toggleOverviewNav()">
+        <div class="nav-btn-overview-left">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+          Overview
+        </div>
+        <span class="nav-ov-chevron open" id="nav-ov-chevron">&#9654;</span>
+      </button>
+      <div class="sb-eng-list open" id="sb-eng-list"></div>
+      <button class="nav-btn" id="nav-prompts" onclick="switchView('prompts',this)">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M2 8h8M2 12h10"/></svg>
+        Prompt Generator
+      </button>
+      <button class="nav-btn" id="nav-log" onclick="switchView('log',this)">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1"/><path d="M5 6h6M5 9h4"/></svg>
+        Activity Log
+      </button>
+      <button class="nav-btn" id="nav-drive" onclick="switchView('drive',this);loadDriveFiles()">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 4h5l2 2h7v8H1V4z"/></svg>
+        Client Files
+      </button>
+      <button class="nav-btn" id="nav-settings" onclick="switchView('settings',this)">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41"/></svg>
+        Settings
+      </button>
+    </div>
+    <div class="sb-foot">
+      <div class="user-row">
+        <div class="avatar">D</div>
+        <div><div class="user-n">Darren</div><div class="user-r">Senior Auditor</div></div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="main">
+    <div class="topbar">
+      <div><div class="tb-title" id="tb-title">Overview</div><div class="tb-sub" id="tb-sub">Select or create an engagement</div></div>
+      <div class="tb-actions">
+        <button class="btn" onclick="loadData()">&#x21BA; Refresh</button>
+        <button class="btn-navy btn" onclick="openModal()">+ New Engagement</button>
+      </div>
+    </div>
+    <div class="content">
+      <div class="view on" id="view-overview">
+        <div id="ov-content">
+          <div class="empty"><h3>No engagement selected</h3><p>Select an engagement from the sidebar or create a new one to begin.</p><button class="btn-navy btn" onclick="openModal()">+ New Engagement</button></div>
+        </div>
+      </div>
+      <div class="view" id="view-prompts">
+        <div class="prompts-layout">
+          <div class="panel">
+            <div class="ph"><div class="ph-title">Cowork Prompt Generator</div><span style="font-size:11px;color:var(--text-light)">Auto-fills from selected engagement</span></div>
+            <div class="pb">
+              <div class="form-grid">
+                <div class="fg"><label class="flbl">Client Name</label><input class="finp" id="p-client" placeholder="Client name" oninput="updatePrompt()"></div>
+                <div class="fg"><label class="flbl">Engagement Type</label><input class="finp" id="p-type" placeholder="e.g. Procurement Audit" oninput="updatePrompt()"></div>
+                <div class="fg"><label class="flbl">Framework</label><input class="finp" id="p-fw" placeholder="e.g. MACC Act S17A" oninput="updatePrompt()"></div>
+                <div class="fg full">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+                    <label class="flbl">Business Areas &amp; Scope Items</label>
+                    <button type="button" class="add-scope-btn" onclick="addPromptBA()">+ Add Business Area</button>
+                  </div>
+                  <div id="prompt-ba-list" style="display:flex;flex-direction:column;gap:12px"></div>
+                </div>
+                <div class="fg"><label class="flbl">Testing Period</label><input class="finp" id="p-tp" placeholder="e.g. Jan-Dec 2024" oninput="updatePrompt()"></div>
+                <div class="fg"><label class="flbl">Risk Level</label><input class="finp" id="p-risk" placeholder="High / Medium / Low" oninput="updatePrompt()"></div>
+                <div class="fg"><label class="flbl">Key Context</label><input class="finp" id="p-ctx" placeholder="LoA, related parties..." oninput="updatePrompt()"></div>
+              </div>
+              <div class="step-pills" id="step-pills"></div>
+              <div id="prompt-dep-warn" style="display:none;font-size:11px;color:var(--orange);background:var(--orange-bg);padding:7px 12px;border-radius:7px;margin-bottom:10px;font-family:'DM Mono',monospace"></div>
+              <div class="prompt-out" id="prompt-out">Fill in the client details above to generate your Cowork prompt.</div>
+              <div style="display:flex;gap:10px;align-items:center">
+                <button class="btn-navy btn" onclick="copyPrompt()">Copy Prompt</button>
+                <span class="copy-ok" id="copy-ok">&#x2713; Copied</span>
+              </div>
+            </div>
+          </div>
+          <div class="ph-panel">
+            <div class="php-header">
+              <div class="php-title">&#128221; Recent Prompts</div>
+              <button class="php-clear" onclick="clearPromptHistory()">Clear</button>
+            </div>
+            <div class="php-list" id="php-list">
+              <div class="php-empty">No prompts copied yet.<br>Copy a prompt to save it here.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+<!-- Link Folder Modal -->
+<div class="modal-ov" id="link-modal">
+  <div class="modal" style="width:500px">
+    <div class="mh"><div class="mh-title" style="font-size:16px">Link Drive Folder</div><button class="mclose" onclick="closeLinkModal()">&#x2715;</button></div>
+    <div class="mb">
+      <p style="font-size:13px;color:var(--text-mid);margin-bottom:14px;line-height:1.6">Select the Drive folder that contains files for <strong id="link-eng-name"></strong>. This replaces auto-detection.</p>
+      <div class="link-modal-list" id="link-folder-list"></div>
+      <div style="margin-top:10px;padding:8px 10px;background:var(--cream);border-radius:var(--r);font-size:11px;color:var(--text-light)">&#128274; Drive folders loaded from connected sources. Click Refresh in Client Files if list is empty.</div>
+    </div>
+    <div class="mf">
+      <button class="btn" onclick="clearFolderLink()">&#x2715; Clear Link</button>
+      <button class="btn" onclick="closeLinkModal()">Cancel</button>
+      <button class="btn-gold btn" onclick="saveFolderLink()">Save Link</button>
+    </div>
+  </div>
+</div>
+
+      <div class="view" id="view-settings">
+        <div class="settings-section">
+          <div class="settings-section-hdr">&#128279; Engagement → Drive Folder Links</div>
+          <div id="settings-links-list">
+            <div class="settings-row"><div><div class="settings-row-label">No engagements yet</div><div class="settings-row-sub">Create an engagement first to link it to a Drive folder.</div></div></div>
+          </div>
+        </div>
+        <div class="settings-section">
+          <div class="settings-section-hdr">&#9881; Drive Sources</div>
+          <div id="settings-sources-list"></div>
+        </div>
+      </div>
+      <div class="view" id="view-log">
+        <div class="log-full">
+          <div class="log-filter-bar">
+            <select class="log-filter-select" id="log-filter-eng" onchange="renderLog()">
+              <option value="">All Engagements</option>
+            </select>
+            <span style="font-size:11px;color:var(--text-light);font-family:'DM Mono',monospace" id="log-count-inline">— entries</span>
+          </div>
+          <div id="log-grouped-content">
+            <div class="empty"><h3>No activity yet</h3><p>Step updates and engagement actions will appear here.</p></div>
+          </div>
+        </div>
+      </div>
+      <div class="view" id="view-drive">
+        <div class="drive-topbar">
+          <div class="drive-topbar-left">
+            <div class="drive-topbar-title">Client Files</div>
+            <div class="drive-topbar-sub">Live from Google Drive — click any file to open</div>
+          </div>
+          <div class="drive-topbar-right">
+            <div class="drive-sort-btns">
+              <button class="sort-btn on" id="sort-alpha" onclick="setDriveSort('alpha')">A→Z</button>
+              <button class="sort-btn" id="sort-recent" onclick="setDriveSort('recent')">Recent</button>
+              <button class="sort-btn linked-only" id="sort-linked" onclick="toggleLinkedOnly()">&#128279; Linked Only</button>
+            </div>
+            <input class="drive-search" id="drive-search" placeholder="Search files..." oninput="filterDriveFiles(this.value)">
+            <span class="drive-status" id="drive-status"></span>
+            <button class="btn" onclick="refreshDriveFiles()">&#x21BA; Refresh</button>
+          </div>
+        </div>
+        <div id="drive-filter-bar" style="display:none" class="drive-filter-bar">
+          <span class="filter-label">&#128279; Filtered:</span>
+          <span class="filter-val" id="drive-filter-val"></span>
+          <button class="btn" style="padding:4px 12px;font-size:12px" onclick="clearDriveFilter()">Show All</button>
+        </div>
+        <div class="drive-layout">
+          <div class="drive-list">
+            <div id="drive-content">
+              <div class="empty"><h3>Loading files...</h3><p>Fetching your client folders from Google Drive.</p></div>
+            </div>
+          </div>
+          <div id="drive-panel-handle" title="Drag to resize panel"></div>
+          <div id="drive-panel">
+            <div class="dp-empty">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 7h5l2 2h11v12H3V7z"/><circle cx="10" cy="14" r="2"/><path d="M10 16v2M8 18h4"/></svg>
+              <span>Open a client folder<br>to view its summary</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var CLIENT_ID='489417814850-3khr286ur180f373pi2q1fb0ulqotkv4.apps.googleusercontent.com';
+var SHEET_ID='1ZgVItOzSqJMpTj8bwq5J_1dns88C5R0nTggkVTsFNM4';
+var DRIVE_SOURCES=[
+  {id:'1PBfiIQnd9wdT4fjHK3NFBO65qeYZjsi5', label:'Darren \u2014 Test'},
+  {id:'196jYsQTFO6hmOc-QI-6lHPWVvtbx3u6l',  label:'EQT Working Files'}
+];
+var SCOPES='https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.readonly';
+var SUITE='Equinox Advisory - IA Suite';
+
+var STEPS=[
+  {name:'Document Requisition',skill:'ia-doc-req-drafter_SKILL',desc:'Request all documents from the client based on initial scope.',dep:null},
+  {name:'Kick-Off Deck',skill:'ia-kickoff-drafter_SKILL',desc:'Produce the kick-off meeting slide deck to present scope, team structure, and document requisition follow-up to the client.',dep:'Step 1'},
+  {name:'Audit Risk & Testing Plan',skill:'ia-arp-drafter_SKILL',desc:'Map risks to scope areas and define testing methodology.',dep:'Step 2'},
+  {name:'Walkthrough Preparation',skill:'ia-walkthrough-prep_SKILL',desc:'Prepare structured questions targeting ARP processes.',dep:'Step 3'},
+  {name:'Process Flowchart',skill:'ia-processflow-drafter_SKILL',desc:"Document the client's actual process from walkthrough notes.",dep:'Step 4'},
+  {name:'Working Papers',skill:'ia-wp-drafter_SKILL',desc:'Execute tests of controls and substantive procedures.',dep:'Step 5'},
+  {name:'Findings List',skill:'ia-findings-drafter_SKILL',desc:'Draft classified findings from working paper observations.',dep:'Step 6'}
+];
+// Maps each step (0-6) to its client folder section
+var STEP_FOLDER_MAP=['1.0','1.0','1.0','1.0','3.0','3.0','4.0'];
+var STEP_FOLDER_LABELS={'1.0':'1.0 Planning','3.0':'3.0 Working Files','4.0':'4.0 Findings & Reports'};
+
+function buildPrompt(idx, d) {
+  var c = d.client || '[client]';
+  var t = d.type || '[type]';
+  var sc = d.scopes || '[scopes]';
+  var fw = d.fw || '[framework]';
+  var tp = d.tp || '[period]';
+  var risk = d.risk || '[risk]';
+  var ctx = d.ctx ? '\nAdditional context: ' + d.ctx : '';
+  var skill = STEPS[idx].skill;
+  var base = 'Read the following files in order before proceeding:\n1. `' + SUITE + '/context.md`\n2. `' + SUITE + '/_Skills/' + skill.replace('_SKILL','') + '/SKILL.md`\n3. `' + SUITE + '/_Clients/' + c + '/Engagement_Master_File.xlsx` — extract client name, engagement type, business areas, scope items, framework, testing period, and LoA thresholds';
+
+  if (idx === 0) {
+    return base + '\n\nThen draft a Document Requisition List for ' + c + '.\nEngagement type: ' + t + '\nScope areas: ' + sc + '\nFramework: ' + fw + '\nTesting period: ' + tp + ctx + '\n\nNote: No client documents have been received yet. Draft based on engagement scope only.\nFor formatting reference only if needed: `' + SUITE + '/_Context/_References/Document Requisition/`\nSave output to: `' + SUITE + '/_Clients/' + c + '/`';
+  }
+  if (idx === 1) {
+    return base + '\n4. `' + SUITE + '/_Clients/' + c + '/` — locate and read the Document Requisition List from Step 1 and the Fieldwork Planning file to extract engagement details, team structure, auditee contacts, and timeline\n\nThen produce the Kick-Off Meeting slide deck for ' + c + '.\nEngagement type: ' + t + '\nScope areas: ' + sc + '\nFramework: ' + fw + '\nTesting period: ' + tp + ctx + '\n\nPopulate all auto-filled slides (Cover, Scope of Work, Project Structure) from the engagement data. Leave the Document Requisition Follow-up slides and Proposed Timeline slide as blank placeholders — these will be updated manually after the meeting.\nFor formatting reference only if needed: `' + SUITE + '/_Context/_References/Kick-Off/`\nSave output to: `' + SUITE + '/_Clients/' + c + '/`';
+  }
+  if (idx === 2) {
+    return base + '\n4. `' + SUITE + '/_Clients/' + c + '/` — locate and read the Document Requisition List from Step 1 to understand what documents have been requested\n\nThen draft an Audit Risk and Testing Plan for ' + c + '.\nEngagement type: ' + t + '\nScope areas: ' + sc + '\nFramework: ' + fw + '\nRisk level: ' + risk + '\nTesting period: ' + tp + ctx + '\n\nFor formatting reference only if needed: `' + SUITE + '/_Context/_References/Audit Risk Plan/`\nSave output to: `' + SUITE + '/_Clients/' + c + '/`';
+  }
+  if (idx === 3) {
+    return base + '\n4. `' + SUITE + '/_Clients/' + c + '/` — locate and read the ARP from Step 3 to ensure walkthrough questions target the identified risks\n\nThen prepare a walkthrough preparation workbook for ' + c + '.\nEngagement type: ' + t + '\nProcesses in scope: ' + sc + ctx + '\n\nThe output workbook will be used as a live question tracker during the walkthrough session. After the session, save the completed transcript back to the client folder.\nFor formatting reference only if needed: `' + SUITE + '/_Context/_References/Walkthrough/`\nSave output to: `' + SUITE + '/_Clients/' + c + '/`';
+  }
+  if (idx === 4) {
+    return base + '\n4. `' + SUITE + '/_Clients/' + c + '/` — locate the walkthrough transcript file (most recent transcript saved after the walkthrough session) and the walkthrough preparation workbook\n\nThis is a two-part task. Complete Part 1 before Part 2.\n\nPART 1 — Fill in the walkthrough notes workbook:\nRead the transcript file from the client folder. Using the walkthrough preparation workbook, populate the Notes column for each question based on what was discussed in the transcript. Save the updated workbook back to `' + SUITE + '/_Clients/' + c + '/` before proceeding.\n\nPART 2 — Draft the process flowchart:\nUsing the completed walkthrough notes from Part 1 as your primary source, draft a process flowchart for ' + c + '.\nEngagement type: ' + t + '\nProcesses: ' + sc + '\nHighlight control points, approval steps, and segregation of duties gaps.' + ctx + '\n\nFor formatting reference only if needed: `' + SUITE + '/_Context/_References/Process Flowchart/`\nSave both outputs to: `' + SUITE + '/_Clients/' + c + '/`';
+  }
+  if (idx === 5) {
+    return base + '\n4. `' + SUITE + '/_Clients/' + c + '/` — locate and read: (a) the ARP from Step 3, (b) the completed process flowchart from Step 5. Also check for any client documents received and note what is available for testing.\n\nThen draft working papers for ' + c + '.\nEngagement type: ' + t + '\nScope areas: ' + sc + '\nFramework: ' + fw + '\nTesting period: ' + tp + '\nRisk level: ' + risk + ctx + '\n\nNote: Only reference client documents confirmed present in the client folder. Do not assume documents are available if not found.\nFor formatting reference only if needed: `' + SUITE + '/_Context/_References/Working Paper/`\nSave output to: `' + SUITE + '/_Clients/' + c + '/`';
+  }
+  if (idx === 6) {
+    return base + '\n4. `' + SUITE + '/_Clients/' + c + '/` — locate and read the completed working papers from Step 6 to extract observations, exceptions, and control gaps noted during testing\n\nThen draft findings for ' + c + ' based on the observations in the working papers.\nEngagement type: ' + t + '\nFramework: ' + fw + '\nClassify each finding as C, FA, PNC, RNC, or W.\nInclude for each finding: Criteria, Observation, and Current Practice.\nScreen all observations before drafting — eliminate duplicates, consolidate related points, only raise findings where a genuine control gap exists.' + ctx + '\n\nFor formatting reference only if needed: `' + SUITE + '/_Context/_References/Findings/`\nSave output to: `' + SUITE + '/_Clients/' + c + '/`';
+  }
+  return '';
+}
+
+var tokenClient, gapiReady=false, gisReady=false;
+var engagements=[], stepStatuses={}, activityLog=[];
+var activeEngId=null, activeStep=0;
+var currentUser='Darren'; // updated on sign-in from Google profile
+
+var SL={ns:'Not Started',ip:'In Progress',dn:'Done'};
+var SC=['ns','ip','dn'];
+
+// ── BUSINESS AREA HELPERS ─────────────────────────────────────────
+// Storage format: "BA1::item1||item2||item3~~BA2::item1||item2"
+// BA separator: ~~ | Item separator: ||  | BA:items separator: ::
+
+function serializeBA(listId) {
+  var blocks = document.querySelectorAll('#'+listId+' .ba-block');
+  var result = [];
+  blocks.forEach(function(block) {
+    var baInp = block.querySelector('.ba-name-inp');
+    var baName = baInp ? baInp.value.trim() : '';
+    var itemInps = block.querySelectorAll('.ba-item-inp');
+    var items = [];
+    itemInps.forEach(function(inp) { var v=inp.value.trim(); if(v) items.push(v); });
+    if (baName) result.push(baName+'::'+items.join('||'));
+  });
+  return result.join('~~');
+}
+
+function parseBA(str) {
+  if (!str) return [];
+  return str.split('~~').map(function(part) {
+    var idx = part.indexOf('::');
+    if (idx < 0) return {name: part, items: []};
+    return {name: part.substring(0,idx), items: part.substring(idx+2).split('||').filter(Boolean)};
+  }).filter(function(ba){return ba.name;});
+}
+
+function makeBABlock(ba, listId, onchange) {
+  var block = document.createElement('div');
+  block.className = 'ba-block';
+
+  // BA header row
+  var header = document.createElement('div');
+  header.className = 'ba-header';
+  var baInp = document.createElement('input');
+  baInp.className = 'finp ba-name-inp';
+  baInp.placeholder = 'Business Area (e.g. Related Party Transactions)';
+  baInp.value = ba.name || '';
+  if (onchange) baInp.oninput = onchange;
+  var removeBA = document.createElement('button');
+  removeBA.type = 'button';
+  removeBA.className = 'scope-remove';
+  removeBA.textContent = '✕';
+  removeBA.onclick = function() {
+    var list = document.getElementById(listId);
+    if (list && list.querySelectorAll('.ba-block').length > 1) { block.remove(); if(onchange) onchange(); }
+  };
+  header.appendChild(baInp);
+  header.appendChild(removeBA);
+  block.appendChild(header);
+
+  // Scope items
+  var itemsDiv = document.createElement('div');
+  itemsDiv.className = 'ba-items';
+  (ba.items.length ? ba.items : ['']).forEach(function(item) {
+    itemsDiv.appendChild(makeScopeItemRow(item, itemsDiv, onchange));
+  });
+  block.appendChild(itemsDiv);
+
+  // Add item button
+  var addItemBtn = document.createElement('button');
+  addItemBtn.type = 'button';
+  addItemBtn.className = 'ba-add-item';
+  addItemBtn.textContent = '+ Add Scope Item';
+  addItemBtn.onclick = function() {
+    itemsDiv.appendChild(makeScopeItemRow('', itemsDiv, onchange));
+    if(onchange) onchange();
+  };
+  block.appendChild(addItemBtn);
+  return block;
+}
+
+function makeScopeItemRow(val, parent, onchange) {
+  var row = document.createElement('div');
+  row.className = 'ba-item-row';
+  var inp = document.createElement('input');
+  inp.className = 'finp ba-item-inp';
+  inp.placeholder = 'Scope item (e.g. To review the RPT policy in place)';
+  inp.value = val || '';
+  if (onchange) inp.oninput = onchange;
+  var btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'scope-remove';
+  btn.textContent = '✕';
+  btn.style.width = '22px';
+  btn.style.height = '22px';
+  btn.onclick = function() {
+    if (parent.querySelectorAll('.ba-item-row').length > 1) { row.remove(); if(onchange) onchange(); }
+  };
+  row.appendChild(inp);
+  row.appendChild(btn);
+  return row;
+}
+
+function initModalBA(baArr) {
+  var list = document.getElementById('modal-ba-list');
+  if (!list) return;
+  list.innerHTML = '';
+  var arr = (baArr && baArr.length) ? baArr : [{name:'',items:['']}];
+  arr.forEach(function(ba) { list.appendChild(makeBABlock(ba,'modal-ba-list',null)); });
+}
+
+function addModalBA() {
+  var list = document.getElementById('modal-ba-list');
+  if (list) list.appendChild(makeBABlock({name:'',items:['']}, 'modal-ba-list', null));
+}
+
+// ── EDIT ENGAGEMENT ───────────────────────────────────────────────
+var editEngId = null;
+
+function openEditModal(eid) {
+  var eng = engagements.find(function(e){ return e.id === eid; });
+  if (!eng) return;
+  editEngId = eid;
+  document.getElementById('e-client').value = eng.client || '';
+  document.getElementById('e-code').value   = eng.code   || '';
+  document.getElementById('e-type').value   = eng.type   || '';
+  document.getElementById('e-period').value = eng.period || '';
+  document.getElementById('e-fw').value     = eng.fw     || '';
+  document.getElementById('e-tp').value     = eng.tp     || '';
+  document.getElementById('e-risk').value   = eng.risk   || '';
+  document.getElementById('e-pic').value    = eng.pic    || '';
+  document.getElementById('e-team').value   = eng.team   || '';
+  document.getElementById('e-ctx').value    = eng.ctx    || '';
+  var baArr = parseBA(eng.scopes);
+  var list = document.getElementById('edit-ba-list');
+  list.innerHTML = '';
+  var arr = (baArr && baArr.length) ? baArr : [{name:'',items:['']}];
+  arr.forEach(function(ba) { list.appendChild(makeBABlock(ba, 'edit-ba-list', null)); });
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function addEditBA() {
+  var list = document.getElementById('edit-ba-list');
+  if (list) list.appendChild(makeBABlock({name:'',items:['']}, 'edit-ba-list', null));
+}
+
+function closeEditModal() {
+  document.getElementById('edit-modal').classList.remove('open');
+  editEngId = null;
+}
+
+function saveEditEngagement() {
+  if (!editEngId) return;
+  var client = document.getElementById('e-client').value.trim();
+  var type   = document.getElementById('e-type').value.trim();
+  if (!client || !type) { toast('Client name and type are required','err'); return; }
+  var scopes = serializeBA('edit-ba-list');
+  var eng = engagements.find(function(e){ return e.id === editEngId; });
+  if (!eng) return;
+
+  // Find the row index in the sheet
+  showLoad('Saving changes...');
+  gapi.client.sheets.spreadsheets.values.get({
+    spreadsheetId: SHEET_ID, range: 'Engagements!A:A'
+  }).then(function(resp) {
+    var rows = resp.result.values || [];
+    var rowIdx = -1;
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i] && rows[i][0] === editEngId) { rowIdx = i + 1; break; } // 1-indexed sheet row
+    }
+    if (rowIdx < 0) throw new Error('Engagement row not found');
+    var updated = [
+      editEngId,
+      client,
+      document.getElementById('e-code').value.trim(),
+      type,
+      document.getElementById('e-period').value.trim(),
+      scopes,
+      document.getElementById('e-fw').value.trim(),
+      document.getElementById('e-tp').value.trim(),
+      document.getElementById('e-risk').value.trim(),
+      document.getElementById('e-pic').value.trim(),
+      document.getElementById('e-team').value.trim(),
+      document.getElementById('e-ctx').value.trim(),
+      eng.created || ''
+    ];
+    return gapi.client.sheets.spreadsheets.values.update({
+      spreadsheetId: SHEET_ID,
+      range: 'Engagements!A'+rowIdx+':M'+rowIdx,
+      valueInputOption: 'RAW',
+      resource: { values: [updated] }
+    });
+  }).then(function() {
+    var now = new Date().toISOString();
+    return addLog(editEngId, client, 'Engagement Updated', 'Edited by '+currentUser, now);
+  }).then(function() {
+    closeEditModal();
+    return loadData();
+  }).then(function() {
+    if (activeEngId === editEngId) renderOverview(activeEngId);
+    toast('Engagement updated!', 'ok');
+  }).catch(function(e) {
+    toast('Update failed: '+errMsg(e), 'err');
+  }).then(function() { hideLoad(); });
+}
+
+function initPromptBA(baArr) {
+  var list = document.getElementById('prompt-ba-list');
+  if (!list) return;
+  list.innerHTML = '';
+  var arr = (baArr && baArr.length) ? baArr : [{name:'',items:['']}];
+  arr.forEach(function(ba) { list.appendChild(makeBABlock(ba,'prompt-ba-list',updatePrompt)); });
+}
+
+function addPromptBA() {
+  var list = document.getElementById('prompt-ba-list');
+  if (list) { list.appendChild(makeBABlock({name:'',items:['']}, 'prompt-ba-list', updatePrompt)); updatePrompt(); }
+}
+
+function getPromptScopeText() {
+  var str = serializeBA('prompt-ba-list');
+  var bas = parseBA(str);
+  if (!bas.length) return '[scopes]';
+  return bas.map(function(ba) {
+    if (!ba.items.length) return ba.name;
+    return ba.name+': '+ba.items.join('; ');
+  }).join(' | ');
+}
+
+// ── GOOGLE AUTH ───────────────────────────────────────────────────
+function gapiLoaded() {
+  gapi.load('client', function() {
+    gapi.client.init({
+      discoveryDocs: [
+        'https://sheets.googleapis.com/$discovery/rest?version=v4',
+        'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'
+      ]
+    }).then(function() {
+      gapiReady = true;
+      checkReady();
+    }).catch(function(e) {
+      setStatus('API init failed: ' + (e && e.message ? e.message : JSON.stringify(e)));
+    });
+  });
+}
+
+function gisLoaded() {
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPES,
+    // No popup — callback fires inline, avoiding COOP/cross-origin issues
+    callback: function(resp) {
+      if (resp.error) {
+        setStatus('Auth error: ' + resp.error);
+        return;
+      }
+      onSignedIn(resp.access_token);
+    }
+  });
+  gisReady = true;
+  checkReady();
+}
+
+function onSignedIn(accessToken) {
+  gapi.client.setToken({access_token: accessToken});
+
+  // Fetch display name for sidebar
+  fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+    headers: {Authorization: 'Bearer ' + accessToken}
+  }).then(function(r) { return r.json(); }).then(function(profile) {
+    if (profile && profile.name) {
+      currentUser = profile.name.split(' ')[0];
+      var avatarEl = document.querySelector('.avatar');
+      var nameEl   = document.querySelector('.user-n');
+      if (avatarEl) avatarEl.textContent = currentUser.charAt(0).toUpperCase();
+      if (nameEl)   nameEl.textContent   = currentUser;
+    }
+  }).catch(function(){});
+
+  document.getElementById('auth').style.display = 'none';
+  document.getElementById('app').classList.add('ready');
+
+  // Load data immediately — no initSheets wrapper
+  loadData();
+  refreshDriveFiles(function() {
+    if (activeEngId) renderOverview(activeEngId);
+  });
+}
+
+function checkReady() {
+  if (gapiReady && gisReady) {
+    setStatus('Ready — click to sign in');
+    document.getElementById('signin-btn').disabled = false;
+  }
+}
+
+function setStatus(msg) { document.getElementById('auth-status').textContent = msg; }
+
+function handleSignIn() {
+  if (!gapiReady || !gisReady) { setStatus('Still initialising, please wait...'); return; }
+  setStatus('Opening Google sign-in...');
+  // prompt: '' skips unnecessary consent screen for returning users
+  tokenClient.requestAccessToken({prompt: ''});
+}
+
+// ── SHEETS ────────────────────────────────────────────────────────
+var HEADERS = {
+  Engagements: [['ID','Client','Code','Type','Period','Scopes','Framework','TestPeriod','Risk','PIC','Team','Context','CreatedAt']],
+  StepStatus:  [['EngagementID','Step','Status','UpdatedAt','UpdatedBy']],
+  ActivityLog: [['Timestamp','EngagementID','Client','Action','Details','User']],
+  FolderLinks: [['EngagementID','FolderID','FolderName']]
+};
+
+function errMsg(e) {
+  if (!e) return 'Unknown error';
+  if (typeof e === 'string') return e;
+  if (e.result && e.result.error && e.result.error.message) return e.result.error.message;
+  if (e.message) return e.message;
+  if (e.status) return 'HTTP ' + e.status;
+  try { return JSON.stringify(e); } catch(_) { return 'Unknown error'; }
+}
+
+function initSheets() {
+  // Tabs already exist — nothing to initialise
+  return Promise.resolve();
+}
+
+function writeHeader(tab) {
+  return gapi.client.sheets.spreadsheets.values.update({
+    spreadsheetId: SHEET_ID, range: tab+'!A1',
+    valueInputOption: 'RAW', resource: {values: HEADERS[tab]}
+  });
+}
+
+function loadData() {
+  showLoad('Loading engagements...');
+  // FolderLinks fetched with safe fallback if tab doesn't exist yet
+  var flPromise = gapi.client.sheets.spreadsheets.values
+    .get({spreadsheetId:SHEET_ID, range:'FolderLinks!A2:C'})
+    .catch(function() { return {result:{values:[]}}; });
+
+  Promise.all([
+    gapi.client.sheets.spreadsheets.values.get({spreadsheetId:SHEET_ID,range:'Engagements!A2:M'}),
+    gapi.client.sheets.spreadsheets.values.get({spreadsheetId:SHEET_ID,range:'StepStatus!A2:E'}),
+    gapi.client.sheets.spreadsheets.values.get({spreadsheetId:SHEET_ID,range:'ActivityLog!A2:F'}),
+    flPromise
+  ]).then(function(results) {
+    engagements = (results[0].result.values||[]).map(function(r) {
+      return {
+        id:r[0]||'', client:r[1]||'', code:r[2]||'', type:r[3]||'', period:r[4]||'',
+        scopes:r[5]||'', fw:r[6]||'', tp:r[7]||'', risk:r[8]||'',
+        pic:r[9]||'', team:r[10]||'', ctx:r[11]||'', created:r[12]||''
+      };
+    });
+    stepStatuses = {};
+    (results[1].result.values||[]).forEach(function(r) {
+      stepStatuses[r[0]+'_'+r[1]] = {status:r[2]||'ns',at:r[3]||'',by:r[4]||''};
+    });
+    activityLog = (results[2].result.values||[]).reverse().map(function(r) {
+      return {ts:r[0]||'',eid:r[1]||'',client:r[2]||'',action:r[3]||'',detail:r[4]||'',user:r[5]||''};
+    });
+    folderLinks = {};
+    (results[3].result.values||[]).forEach(function(r) {
+      if (r[0] && r[1]) folderLinks[r[0]] = {folderId:r[1], folderName:r[2]||''};
+    });
+    renderSidebar();
+    if (activeEngId) renderOverview(activeEngId);
+    renderLog();
+    renderSettingsLinks();
+    toast('Synced with Google Sheets','ok');
+    hideLoad();
+  }).catch(function(e) {
+    hideLoad();
+    toast('Load failed: '+errMsg(e),'err');
+  });
+}
+
+function saveEngagement() {
+  var client = gv('m-client'), type = gv('m-type');
+  if (!client||!type) { toast('Client name and type are required','err'); return; }
+  var id = 'ENG-'+Date.now();
+  var now = new Date().toISOString();
+  var scopes = serializeBA('modal-ba-list');
+  var row = [id,client,gv('m-code'),type,gv('m-period'),scopes,gv('m-fw'),gv('m-tp'),gv('m-risk'),gv('m-pic'),gv('m-team'),gv('m-ctx'),now];
+  showLoad('Saving...');
+  gapi.client.sheets.spreadsheets.values.append({
+    spreadsheetId:SHEET_ID, range:'Engagements!A:M',
+    valueInputOption:'RAW', insertDataOption:'INSERT_ROWS',
+    resource:{values:[row]}
+  }).then(function() {
+    return addLog(id,client,'Engagement Created','Type: '+type,now);
+  }).then(function() {
+    closeModal();
+    return loadData();
+  }).then(function() {
+    selectEng(id);
+    toast('Engagement saved!','ok');
+  }).catch(function(e) {
+    toast('Save failed: '+errMsg(e),'err');
+  }).then(function() { hideLoad(); });
+}
+
+function cycleStep(eid, idx) {
+  var key = eid+'_'+idx;
+  var cur = (stepStatuses[key]||{}).status||'ns';
+  var next = SC[(SC.indexOf(cur)+1)%SC.length];
+  var now = new Date().toISOString();
+  stepStatuses[key] = {status:next,at:now,by:currentUser};
+  showLoad('Updating...');
+  gapi.client.sheets.spreadsheets.values.get({
+    spreadsheetId:SHEET_ID, range:'StepStatus!A:E'
+  }).then(function(resp) {
+    var rows = resp.result.values||[];
+    var ri = -1;
+    for (var i=0;i<rows.length;i++) {
+      if (rows[i][0]===eid && rows[i][1]===String(idx)) { ri=i; break; }
+    }
+    var newRow = [eid,String(idx),next,now,currentUser];
+    if (ri>0) {
+      return gapi.client.sheets.spreadsheets.values.update({
+        spreadsheetId:SHEET_ID, range:'StepStatus!A'+(ri+1)+':E'+(ri+1),
+        valueInputOption:'RAW', resource:{values:[newRow]}
+      });
+    } else {
+      return gapi.client.sheets.spreadsheets.values.append({
+        spreadsheetId:SHEET_ID, range:'StepStatus!A:E',
+        valueInputOption:'RAW', insertDataOption:'INSERT_ROWS',
+        resource:{values:[newRow]}
+      });
+    }
+  }).then(function() {
+    var eng = engagements.find(function(e){return e.id===eid;});
+    return addLog(eid,(eng||{}).client||'','Step Updated','Step '+(idx+1)+' \u2014 '+STEPS[idx].name+' \u2192 '+SL[next],now);
+  }).then(function() {
+    renderOverview(eid); renderLog(); renderSidebar();
+    toast('Step '+(idx+1)+' \u2192 '+SL[next],'ok');
+  }).catch(function(e){toast('Update failed: '+errMsg(e),'err');})
+  .then(function(){hideLoad();});
+}
+
+function addLog(eid,client,action,detail,ts) {
+  var row = [ts||new Date().toISOString(),eid,client,action,detail,currentUser];
+  activityLog.unshift({ts:row[0],eid:eid,client:client,action:action,detail:detail,user:currentUser});
+  return gapi.client.sheets.spreadsheets.values.append({
+    spreadsheetId:SHEET_ID, range:'ActivityLog!A:F',
+    valueInputOption:'RAW', insertDataOption:'INSERT_ROWS',
+    resource:{values:[row]}
+  });
+}
+
+// ── RENDER ────────────────────────────────────────────────────────
+function renderSidebar() {
+  var el = document.getElementById('sb-eng-list');
+  if (!el) return;
+  if (!engagements.length) {
+    el.innerHTML = '<div style="font-size:11px;color:rgba(255,255,255,.18);padding:5px 10px 5px 34px">No engagements yet</div>';
+    return;
+  }
+  el.innerHTML = engagements.map(function(e) {
+    var done = STEPS.filter(function(_,i){return ((stepStatuses[e.id+'_'+i]||{}).status||'ns')==='dn';}).length;
+    var pct = Math.round(done/STEPS.length*100);
+    return '<div class="sb-eng-item '+(e.id===activeEngId?'on':'')+'" onclick="selectEng(\''+e.id+'\')">'
+      +'<div class="sb-eng-item-name">'+escHtml(e.client)+'</div>'
+      +'<div class="sb-eng-item-pct">'+pct+'%</div>'
+      +'</div>';
+  }).join('');
+}
+
+function toggleOverviewNav() {
+  var list = document.getElementById('sb-eng-list');
+  var chevron = document.getElementById('nav-ov-chevron');
+  var btn = document.getElementById('nav-overview');
+  var isOpen = list.classList.contains('open');
+  list.classList.toggle('open', !isOpen);
+  chevron.classList.toggle('open', !isOpen);
+  // Also switch to overview view
+  switchViewOverview();
+}
+
+function selectEng(id) {
+  activeEngId = id;
+  switchViewOverview();
+  renderOverview(id);
+  renderSidebar();
+  // If this engagement has a linked folder, pre-set the Drive filter
+  var link = folderLinks[id];
+  if (link) {
+    driveFolderFilter = {folderId: link.folderId, label: link.folderName};
+    document.getElementById('drive-filter-val').textContent = link.folderName;
+    document.getElementById('drive-filter-bar').style.display = 'flex';
+    document.getElementById('drive-search').value = '';
+    driveSearchTerm = '';
+  } else {
+    // Clear any previous filter — don't guess
+    driveFolderFilter = null;
+    document.getElementById('drive-filter-bar').style.display = 'none';
+    document.getElementById('drive-search').value = '';
+    driveSearchTerm = '';
+  }
+  if (driveLoaded) renderDriveFiles();
+}
+
+function renderOverview(eid) {
+  var eng = engagements.find(function(e){return e.id===eid;});
+  if (!eng) return;
+  document.getElementById('tb-title').textContent = eng.client;
+  document.getElementById('tb-sub').textContent = eng.type + (eng.tp?' \u00b7 '+eng.tp:'');
+  var sts = STEPS.map(function(_,i){return (stepStatuses[eid+'_'+i]||{}).status||'ns';});
+  var done = sts.filter(function(s){return s==='dn';}).length;
+  var prog = sts.filter(function(s){return s==='ip';}).length;
+  var pct = Math.round(done/STEPS.length*100);
+  var baArr = parseBA(eng.scopes);
+  var scopeDisplay = baArr.length
+    ? baArr.map(function(ba){
+        return '<strong>'+ba.name+'</strong>'+(ba.items.length?'<br><span style=\'font-size:11px;color:var(--text-light)\'>'+ba.items.join('<br>')+'</span>':'');
+      }).join('<br><br>')
+    : '\u2014';
+
+  // Team chips
+  var teamStr = '';
+  if (eng.pic) teamStr += '<span class="team-chip">&#128100; '+escHtml(eng.pic)+' (PIC)</span>';
+  if (eng.team) eng.team.split(',').forEach(function(m){
+    var t=m.trim(); if(t) teamStr+='<span class="team-chip">&#128100; '+escHtml(t)+'</span>';
+  });
+
+  // Step-to-files lookup — returns {found, rootFiles[], groups:[{name, files[]}]}
+  // rootFiles = files sitting directly in the section folder (e.g. 3.0 Working Files)
+  // groups    = one entry per subfolder, each with all files recursively collected
+  function getFilesForStep(stepIdx) {
+    if (!driveData || !driveData.length) return {found:false, rootFiles:[], groups:[]};
+    var link = folderLinks[eid];
+    if (!link) return {found:false, rootFiles:[], groups:[]};
+    var folderPrefix = STEP_FOLDER_MAP[stepIdx];
+    var rootFiles = [];
+    var groups = [];
+    var found = false;
+    driveData.forEach(function(sg) {
+      sg.clients.forEach(function(c) {
+        if (c.folder.id !== link.folderId) return;
+        c.subFolders.forEach(function(node) {
+          if (!node.folder.name.startsWith(folderPrefix)) return;
+          found = true;
+          (node.files||[]).forEach(function(f){ rootFiles.push(f); });
+          (node.subFolders||[]).forEach(function(sub) {
+            var groupFiles = [];
+            function collectFiles(n) {
+              (n.files||[]).forEach(function(f){ groupFiles.push(f); });
+              (n.subFolders||[]).forEach(function(child){ collectFiles(child); });
+            }
+            collectFiles(sub);
+            groups.push({name: sub.folder.name, files: groupFiles});
+          });
+        });
+      });
+    });
+    return {found:found, rootFiles:rootFiles, groups:groups};
+  }
+
+  document.getElementById('ov-content').innerHTML =
+    '<div class="metrics">'
+    +'<div class="mc"><div class="mc-lbl">Progress</div><div class="mc-val gold">'+pct+'%</div></div>'
+    +'<div class="mc"><div class="mc-lbl">Done</div><div class="mc-val green">'+done+'</div></div>'
+    +'<div class="mc"><div class="mc-lbl">In Progress</div><div class="mc-val orange">'+prog+'</div></div>'
+    +'<div class="mc"><div class="mc-lbl">Not Started</div><div class="mc-val">'+(6-done-prog)+'</div></div>'
+    +'<div class="mc"><div class="mc-lbl">Risk Level</div><div class="mc-val" style="font-size:18px;padding-top:5px">'+(eng.risk||'\u2014')+'</div></div>'
+    +'</div>'
+    +'<div class="pipeline">'+STEPS.map(function(s,i){
+      return '<div class="pn"><div class="pdot '+sts[i]+'">'+(i+1)+'</div><div class="plbl">'+s.name+'</div></div>'
+        +(i<STEPS.length-1?'<div class="pline '+(sts[i]==='dn'?'dn':'')+'"></div>':'');
+    }).join('')+'</div>'
+    +'<div class="panel"><div class="ph"><div class="ph-title">Engagement Details</div></div><div class="pb">'
+    +(teamStr ? '<div style="margin-bottom:14px">'+teamStr+'</div>' : '')
+    +'<div class="det-grid">'
+    +'<div class=\'det-item\'><div class=\'lbl\'>Scope Areas</div><div class=\'val\' style=\'line-height:1.7\'>'+scopeDisplay+'</div></div>'+det('Framework',eng.fw||'\u2014')+det('Testing Period',eng.tp||'\u2014')
+    +det('Senior Auditor',eng.pic||'\u2014')+det('Team',eng.team||'\u2014')+det('Context',eng.ctx||'\u2014')
+    +'</div></div></div>'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">'
+    +(folderLinks[eid]
+      ? '<button class="btn btn-navy" onclick="switchView(\'drive\',document.querySelectorAll(\'.nav-btn\')[3]);loadDriveFiles();setDriveFolderFilter(\''+folderLinks[eid].folderId+'\',\''+escHtml(folderLinks[eid].folderName)+'\')">&#128194; View Client Files</button>'
+      : '<button class="btn" onclick="switchView(\'settings\',document.querySelectorAll(\'.nav-btn\')[4])" style="border-color:var(--gold);color:var(--gold)">&#128279; Link a Drive Folder</button>')
+    +'<div style="display:flex;gap:8px">'
+    +'<button id="edit-eng-btn" class="btn" style="font-size:12px">&#9998; Edit</button>'
+    +'<button id="del-eng-btn" class="btn" style="border-color:#c53030;color:#c53030;font-size:12px">&#128465; Delete</button>'
+    +'</div></div>'
+    +'<div class="steps">'+STEPS.map(function(s,i){
+      var stData = stepStatuses[eid+'_'+i]||{};
+      var depOk = i===0 || sts[i-1]==='dn';
+      var warnHtml = (!depOk && sts[i]!=='dn') ? '<div class="sc-dep-warn show">\u26a0 '+STEPS[i-1].name+' not yet complete</div>' : '';
+      var folderCatLabel = STEP_FOLDER_LABELS[STEP_FOLDER_MAP[i]] || '';
+      var hasLink = !!folderLinks[eid];
+      var updatedHtml = stData.at
+        ? '<div class="sc-updated">Updated '+fmtTs(stData.at)+' by <strong>'+(stData.by||'\u2014')+'</strong></div>'
+        : '';
+
+      // Build right col: inline file list
+      var stepFiles = getFilesForStep(i);
+      var rightHtml;
+      if (!hasLink) {
+        rightHtml = '<div class="sc-files-header"><div class="sc-files-label">\u{1F4C2} '+folderCatLabel+'</div></div>'
+          +'<div class="sc-files-prompt" onclick="switchView(\'settings\',document.querySelectorAll(\'.nav-btn\')[4])">\u26a0 Link a Drive folder to view files</div>';
+      } else if (!stepFiles.found) {
+        // Two sub-states: Drive not loaded yet vs loaded but folder/subfolder not found
+        var notLoadedYet = !driveLoaded;
+        rightHtml = '<div class="sc-files-header"><div class="sc-files-label">\u{1F4C2} '+folderCatLabel+'</div></div>'
+          +(notLoadedYet
+            ? '<div class="sc-files-prompt" onclick="switchView(\'drive\',document.querySelectorAll(\'.nav-btn\')[3]);loadDriveFiles()">&#8635; Load Drive files to view</div>'
+            : '<div class="sc-files-empty">Subfolder &ldquo;'+folderCatLabel+'&rdquo; not found in linked folder</div>');
+      } else {
+        var totalCount = stepFiles.rootFiles.length + stepFiles.groups.reduce(function(n,g){return n+g.files.length;},0);
+        function renderFileLink(f) {
+          var ico = getMimeLabel(f.mimeType, f.name||'');
+          var dateStr = f.modifiedTime ? f.modifiedTime.slice(0,10) : '';
+          var url = getFileUrl(f);
+          return '<a class="sc-file-link" href="'+url+'" target="_blank" title="'+escHtml(f.name||'')+'">'
+            +'<div class="file-ico '+ico.cls+'">'+escHtml(ico.label)+'</div>'
+            +'<span class="sc-file-name">'+escHtml(f.name||'')+'</span>'
+            +(dateStr?'<span class="sc-file-date">'+dateStr+'</span>':'')
+            +'</a>';
+        }
+        var bodyHtml = '';
+        if (stepFiles.rootFiles.length) {
+          bodyHtml += stepFiles.rootFiles.map(renderFileLink).join('');
+        }
+        if (stepFiles.groups.length) {
+          stepFiles.groups.forEach(function(g) {
+            bodyHtml += '<div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-light);font-family:\'DM Mono\',monospace;padding:6px 4px 3px;margin-top:4px;border-top:1px solid var(--border)">'
+              +'\uD83D\uDCC2 '+escHtml(g.name)+'</div>';
+            if (g.files.length) {
+              bodyHtml += g.files.map(renderFileLink).join('');
+            } else {
+              bodyHtml += '<div class="sc-files-empty" style="padding-left:4px">No files</div>';
+            }
+          });
+        }
+        if (!bodyHtml) bodyHtml = '<div class="sc-files-empty">No files in '+folderCatLabel+'</div>';
+        rightHtml = '<div class="sc-files-header">'
+          +'<div class="sc-files-label">\u{1F4C2} '+folderCatLabel+'</div>'
+          +(totalCount?'<span class="sc-files-count">'+totalCount+'</span>':'')
+          +'</div>'
+          +'<div class="sc-files-list">'+bodyHtml+'</div>';
+      }
+
+      return '<div class="sc '+sts[i]+'">'
+        +'<div class="sc-left">'
+        +'<div class="sc-top"><div class="sc-num '+sts[i]+'">'+(i+1)+'</div><div class="sc-badge '+sts[i]+'">'+SL[sts[i]]+'</div></div>'
+        +'<div class="sc-title">'+s.name+'</div>'
+        +warnHtml
+        +'<div class="sc-desc">'+s.desc+'</div>'
+        +updatedHtml
+        +'<div class="sc-foot"><div class="sc-dep">'+(s.dep?'\u2192 requires '+s.dep:'Starting point')+'</div>'
+        +'<button class="cycle-btn" onclick="cycleStep(\''+eid+'\','+i+')">'
+        +(sts[i]==='ns'?'Start':sts[i]==='ip'?'Mark Done':'Reopen')
+        +'</button></div>'
+        +'</div>'
+        +'<div class="sc-right">'+rightHtml+'</div>'
+        +'</div>';
+    }).join('')+'</div>';
+
+  prefillPrompt(eng);
+
+  // Attach delete and edit button events after innerHTML is set
+  var delBtn = document.getElementById('del-eng-btn');
+  if (delBtn) {
+    delBtn.onclick = function() { confirmDeleteEng(eid, eng.client); };
+  }
+  var editBtn = document.getElementById('edit-eng-btn');
+  if (editBtn) {
+    editBtn.onclick = function() { openEditModal(eid); };
+  }
+}
+
+function det(label,val) {
+  return '<div class="det-item"><div class="lbl">'+label+'</div><div class="val">'+val+'</div></div>';
+}
+
+function renderLog() {
+  var filterEl = document.getElementById('log-filter-eng');
+  var countEl = document.getElementById('log-count-inline');
+  var container = document.getElementById('log-grouped-content');
+
+  // Populate filter dropdown
+  if (filterEl) {
+    var currentVal = filterEl.value;
+    var engOptions = '<option value="">All Engagements</option>'
+      + engagements.map(function(e){
+          return '<option value="'+e.id+'"'+(e.id===currentVal?' selected':'')+'>'+escHtml(e.client)+'</option>';
+        }).join('');
+    filterEl.innerHTML = engOptions;
+    filterEl.value = currentVal;
+  }
+
+  var filterEid = filterEl ? filterEl.value : '';
+  var filtered = activityLog.filter(function(l){
+    return !filterEid || l.eid === filterEid;
+  });
+
+  if (countEl) countEl.textContent = filtered.length + ' entr'+(filtered.length===1?'y':'ies');
+
+  if (!filtered.length) {
+    container.innerHTML = '<div class="empty"><h3>No activity yet</h3><p>Step updates and engagement actions will appear here.</p></div>';
+    return;
+  }
+
+  // Group by date
+  var now = new Date();
+  var todayStr = now.toDateString();
+  var yest = new Date(now); yest.setDate(yest.getDate()-1);
+  var yesterdayStr = yest.toDateString();
+  var weekAgo = new Date(now); weekAgo.setDate(weekAgo.getDate()-7);
+
+  var groups = {};
+  var groupOrder = [];
+  filtered.forEach(function(l) {
+    var d = new Date(l.ts||0);
+    var ds = d.toDateString();
+    var gKey, gLabel;
+    if (ds === todayStr) { gKey='today'; gLabel='Today'; }
+    else if (ds === yesterdayStr) { gKey='yesterday'; gLabel='Yesterday'; }
+    else if (d >= weekAgo) { gKey='thisweek'; gLabel='This Week'; }
+    else { gKey='older'; gLabel='Older'; }
+    if (!groups[gKey]) { groups[gKey] = {label:gLabel, entries:[]}; groupOrder.push(gKey); }
+    groups[gKey].entries.push(l);
+  });
+  // Deduplicate groupOrder
+  groupOrder = groupOrder.filter(function(v,i,a){return a.indexOf(v)===i;});
+
+  container.innerHTML = groupOrder.map(function(gKey) {
+    var g = groups[gKey];
+    var rows = g.entries.map(function(l){
+      return '<tr>'
+        +'<td style="font-family:monospace;white-space:nowrap;font-size:11px;color:var(--text-light)">'+fmtTs(l.ts)+'</td>'
+        +'<td style="font-weight:500">'+escHtml(l.client)+'</td>'
+        +'<td><strong>'+escHtml(l.action)+'</strong></td>'
+        +'<td>'+escHtml(l.detail)+'</td>'
+        +'<td style="color:var(--text-light)">'+escHtml(l.user)+'</td>'
+        +'</tr>';
+    }).join('');
+    return '<div class="log-group">'
+      +'<div class="log-group-hdr" onclick="toggleLogGroup(this)">'
+      +'<span class="log-group-label">'+g.label+'</span>'
+      +'<div style="display:flex;align-items:center;gap:8px">'
+      +'<span class="log-group-count">'+g.entries.length+'</span>'
+      +'<span class="log-group-chevron open">&#9654;</span>'
+      +'</div>'
+      +'</div>'
+      +'<div class="log-group-body open">'
+      +'<table class="log-tbl"><thead><tr><th>Time</th><th>Client</th><th>Action</th><th>Details</th><th>By</th></tr></thead>'
+      +'<tbody>'+rows+'</tbody></table>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+}
+
+function toggleLogGroup(hdr) {
+  var body = hdr.nextElementSibling;
+  var chevron = hdr.querySelector('.log-group-chevron');
+  var isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  if (chevron) chevron.classList.toggle('open', !isOpen);
+}
+
+// ── PROMPT HISTORY ────────────────────────────────────────────────
+var promptHistory = [];
+try { promptHistory = JSON.parse(localStorage.getItem('ia_prompt_history')||'[]'); } catch(e){}
+
+function savePromptHistory() {
+  try { localStorage.setItem('ia_prompt_history', JSON.stringify(promptHistory.slice(0,30))); } catch(e){}
+}
+
+function addPromptToHistory(text) {
+  var client = gv('p-client') || '—';
+  var stepName = STEPS[activeStep] ? STEPS[activeStep].name : 'Step '+(activeStep+1);
+  promptHistory.unshift({
+    ts: new Date().toISOString(),
+    client: client,
+    step: 'Step '+(activeStep+1),
+    stepName: stepName,
+    preview: text.substring(0,80),
+    full: text
+  });
+  savePromptHistory();
+  renderPromptHistory();
+}
+
+function renderPromptHistory() {
+  var el = document.getElementById('php-list');
+  if (!el) return;
+  if (!promptHistory.length) {
+    el.innerHTML = '<div class="php-empty">No prompts copied yet.<br>Copy a prompt to save it here.</div>';
+    return;
+  }
+  el.innerHTML = promptHistory.map(function(p, idx) {
+    return '<div class="php-item" onclick="restorePromptHistory('+idx+')" title="Click to restore">'
+      +'<div class="php-item-meta">'
+      +'<span class="php-item-step">'+escHtml(p.step)+'</span>'
+      +'<span class="php-item-time">'+fmtTs(p.ts)+'</span>'
+      +'</div>'
+      +'<div class="php-item-client">'+escHtml(p.client)+' — '+escHtml(p.stepName)+'</div>'
+      +'<div class="php-item-preview">'+escHtml(p.preview)+'…</div>'
+      +'</div>';
+  }).join('');
+}
+
+function restorePromptHistory(idx) {
+  var p = promptHistory[idx];
+  if (!p) return;
+  var el = document.getElementById('prompt-out');
+  if (el) el.textContent = p.full;
+  toast('Prompt restored — '+(p.client)+' '+p.step, 'ok');
+}
+
+function clearPromptHistory() {
+  promptHistory = [];
+  savePromptHistory();
+  renderPromptHistory();
+  toast('Prompt history cleared', 'ok');
+}
+
+function fmtTs(ts) {
+  if (!ts) return '\u2014';
+  try { return new Date(ts).toLocaleString('en-MY',{dateStyle:'short',timeStyle:'short'}); } catch(e) { return ts; }
+}
+
+// ── PROMPT GENERATOR ──────────────────────────────────────────────
+function initPills() {
+  document.getElementById('step-pills').innerHTML = STEPS.map(function(s,i){
+    return '<div class="sp '+(i===0?'on':'')+'" onclick="selStep('+i+',this)">Step '+(i+1)+'</div>';
+  }).join('');
+  initPromptBA([]);
+}
+
+function selStep(i,el) {
+  activeStep = i;
+  document.querySelectorAll('.sp').forEach(function(p){p.classList.remove('on');});
+  el.classList.add('on');
+  // Dependency warning
+  var warn = document.getElementById('prompt-dep-warn');
+  if (warn) {
+    if (i > 0 && activeEngId) {
+      var prevStatus = (stepStatuses[activeEngId+'_'+(i-1)]||{}).status||'ns';
+      if (prevStatus !== 'dn') {
+        warn.textContent = '\u26a0 Step '+i+' ('+STEPS[i-1].name+') is not yet marked Done.';
+        warn.style.display = 'block';
+      } else {
+        warn.style.display = 'none';
+      }
+    } else {
+      warn.style.display = 'none';
+    }
+  }
+  updatePrompt();
+}
+
+function getD() {
+  return {
+    client: gv('p-client')||'[client]',
+    type: gv('p-type')||'[type]',
+    scopes: getPromptScopeText(),
+    fw: gv('p-fw')||'[framework]',
+    tp: gv('p-tp')||'[period]',
+    risk: gv('p-risk')||'[risk]',
+    ctx: gv('p-ctx')
+  };
+}
+
+function updatePrompt() {
+  var el = document.getElementById('prompt-out');
+  if (el) el.textContent = buildPrompt(activeStep, getD());
+}
+
+function prefillPrompt(eng) {
+  sv('p-client',eng.client); sv('p-type',eng.type);
+  sv('p-fw',eng.fw); sv('p-tp',eng.tp); sv('p-risk',eng.risk); sv('p-ctx',eng.ctx);
+  var baArr = parseBA(eng.scopes);
+  initPromptBA(baArr.length ? baArr : [{name:'',items:['']}]);
+  updatePrompt();
+}
+
+function copyPrompt() {
+  var text = document.getElementById('prompt-out').textContent;
+  navigator.clipboard.writeText(text).then(function(){
+    var c=document.getElementById('copy-ok');
+    c.style.opacity='1';
+    setTimeout(function(){c.style.opacity='0';},2500);
+    addPromptToHistory(text);
+  });
+}
+
+// ── UI HELPERS ────────────────────────────────────────────────────
+function switchViewOverview() {
+  document.querySelectorAll('.view').forEach(function(v){v.classList.remove('on');});
+  document.getElementById('view-overview').classList.add('on');
+  // Nav highlight
+  document.querySelectorAll('.nav-btn').forEach(function(n){n.classList.remove('on');});
+  var ov = document.getElementById('nav-overview');
+  if (ov) ov.classList.add('on');
+}
+
+function switchView(name, btn) {
+  document.querySelectorAll('.view').forEach(function(v){v.classList.remove('on');});
+  var target = document.getElementById('view-'+name);
+  if (target) target.classList.add('on');
+  // Nav highlight — clear all nav-btn and nav-btn-overview
+  document.querySelectorAll('.nav-btn').forEach(function(n){n.classList.remove('on');});
+  var ov = document.getElementById('nav-overview');
+  if (ov) ov.classList.remove('on');
+  if (btn) btn.classList.add('on');
+}
+function openModal() {
+  initModalBA([]);
+  document.getElementById('eng-modal').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('eng-modal').classList.remove('open');
+  ['m-client','m-code','m-type','m-period','m-fw','m-tp','m-pic','m-team','m-ctx'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.value='';
+  });
+  var r=document.getElementById('m-risk'); if(r) r.value='';
+  initModalBA([]);
+}
+function showLoad(msg){document.getElementById('ld-txt').textContent=msg||'Loading...';document.getElementById('ldo').classList.add('show');}
+function hideLoad(){document.getElementById('ldo').classList.remove('show');}
+function toast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(type||'ok');setTimeout(function(){t.className='toast';},3500);}
+function gv(id){var el=document.getElementById(id);return el?el.value.trim():'';}
+function sv(id,val){var el=document.getElementById(id);if(el)el.value=val||'';}
+
+// ── DELETE ENGAGEMENT ────────────────────────────────────────────
+var deleteEngId = null;
+
+function currentEngId() { return activeEngId; }
+
+function confirmDeleteEng(id) {
+  var eng = engagements.find(function(e){ return e.id === id; });
+  deleteEngId = id;
+  document.getElementById('del-eng-name').textContent = eng ? eng.client : 'this engagement';
+  document.getElementById('del-modal').classList.add('open');
+}
+
+function executeDeleteEng() {
+  if (!deleteEngId) return;
+  var id = deleteEngId;
+  document.getElementById('del-modal').classList.remove('open');
+  showLoad('Deleting engagement...');
+
+  // Delete from all three sheets
+  Promise.all([
+    deleteRowsFromSheet('Engagements', id, 0),
+    deleteRowsFromSheet('StepStatus', id, 0),
+    deleteRowsFromSheet('ActivityLog', id, 1)
+  ]).then(function() {
+    if (activeEngId === id) {
+      activeEngId = null;
+      document.getElementById('tb-title').textContent = 'Overview';
+      document.getElementById('tb-sub').textContent = 'Select or create an engagement';
+      document.getElementById('ov-content').innerHTML = '<div class="empty"><h3>No engagement selected</h3><p>Select an engagement from the sidebar or create a new one to begin.</p><button class="btn-navy btn" onclick="openModal()">+ New Engagement</button></div>';
+    }
+    return loadData();
+  }).then(function() {
+    toast('Engagement deleted', 'ok');
+  }).catch(function(e) {
+    toast('Delete failed: '+errMsg(e), 'err');
+  }).then(function() {
+    hideLoad();
+    deleteEngId = null;
+  });
+}
+
+function deleteRowsFromSheet(tab, engId, colIdx) {
+  return gapi.client.sheets.spreadsheets.values.get({
+    spreadsheetId: SHEET_ID, range: tab+'!A:A'
+  }).then(function(resp) {
+    var rows = resp.result.values || [];
+    // Collect row indices to delete (1-indexed, skip header row 0)
+    var toDelete = [];
+    for (var i = 1; i < rows.length; i++) {
+      if (rows[i] && rows[i][colIdx] === engId) toDelete.push(i);
+    }
+    if (!toDelete.length) return;
+    // Delete from bottom up to preserve indices
+    toDelete.sort(function(a,b){return b-a;});
+    var requests = toDelete.map(function(ri) {
+      return {
+        deleteDimension: {
+          range: {
+            sheetId: null, // filled in below
+            dimension: 'ROWS',
+            startIndex: ri,
+            endIndex: ri + 1
+          }
+        }
+      };
+    });
+    // Get sheet ID first
+    return gapi.client.sheets.spreadsheets.get({
+      spreadsheetId: SHEET_ID
+    }).then(function(meta) {
+      var sheets = meta.result.sheets || [];
+      var sheetId = null;
+      for (var i=0; i<sheets.length; i++) {
+        if (sheets[i].properties.title === tab) {
+          sheetId = sheets[i].properties.sheetId;
+          break;
+        }
+      }
+      if (sheetId === null) return;
+      requests.forEach(function(r) {
+        r.deleteDimension.range.sheetId = sheetId;
+      });
+      return gapi.client.sheets.spreadsheets.batchUpdate({
+        spreadsheetId: SHEET_ID,
+        resource: { requests: requests }
+      });
+    });
+  });
+}
+
+// ── DRIVE FILES ───────────────────────────────────────────────────
+var driveData = [];       // [{source, clients:[]}]
+var driveLoaded = false;
+var driveSearchTerm = '';
+var driveSort = 'alpha';
+var driveLinkedOnly = false;
+var driveFolderFilter = null; // {folderId, label} — set when engagement selected
+var activePanelFolderId = null;
+var logDisplayLimit = 60;
+// folderLinks: engagementId -> {folderId, folderName} — shared via Google Sheets FolderLinks tab
+var folderLinks = {};
+
+function saveFolderLinks() {
+  var rows = Object.keys(folderLinks).map(function(eid) {
+    return [eid, folderLinks[eid].folderId, folderLinks[eid].folderName];
+  });
+  gapi.client.sheets.spreadsheets.values.clear({
+    spreadsheetId: SHEET_ID, range: 'FolderLinks!A2:C'
+  }).then(function() {
+    if (!rows.length) return;
+    return gapi.client.sheets.spreadsheets.values.update({
+      spreadsheetId: SHEET_ID, range: 'FolderLinks!A2',
+      valueInputOption: 'RAW', resource: {values: rows}
+    });
+  }).catch(function(e) { toast('Folder link save failed: '+errMsg(e),'err'); });
+}
+
+function setDriveSort(mode) {
+  driveSort = mode;
+  document.getElementById('sort-alpha').classList.toggle('on', mode==='alpha');
+  document.getElementById('sort-recent').classList.toggle('on', mode==='recent');
+  if (driveLoaded) renderDriveFiles();
+}
+
+function toggleLinkedOnly() {
+  driveLinkedOnly = !driveLinkedOnly;
+  var btn = document.getElementById('sort-linked');
+  if (btn) btn.classList.toggle('on', driveLinkedOnly);
+  if (driveLoaded) renderDriveFiles();
+}
+
+function filterDriveFiles(term) {
+  driveSearchTerm = (term||'').toLowerCase();
+  if (driveLoaded) renderDriveFiles();
+}
+
+function clearDriveFilter() {
+  driveFolderFilter = null;
+  driveSearchTerm = '';
+  document.getElementById('drive-search').value = '';
+  document.getElementById('drive-filter-bar').style.display = 'none';
+  renderDriveFiles();
+}
+
+function setDriveFolderFilter(folderId, label) {
+  driveFolderFilter = {folderId: folderId, label: label};
+  document.getElementById('drive-filter-bar').style.display = 'flex';
+  document.getElementById('drive-filter-val').textContent = label;
+  document.getElementById('drive-search').value = '';
+  driveSearchTerm = '';
+  if (driveLoaded) renderDriveFiles();
+}
+
+function openStepInDrive(engId, stepIdx) {
+  var prefix = STEP_FOLDER_MAP[stepIdx];
+  var link = folderLinks[engId];
+  switchView('drive', document.querySelectorAll('.nav-btn')[3]);
+  if (!link) { loadDriveFiles(); return; }
+  if (!driveLoaded) {
+    loadDriveFiles();
+    setDriveFolderFilter(link.folderId, link.folderName);
+    return;
+  }
+  setDriveFolderFilter(link.folderId, link.folderName);
+  var domId = 'cr-' + link.folderId;
+  openClientRow(domId);
+  setTimeout(function() {
+    var tabs = document.querySelectorAll('#' + domId + ' .cr-tab');
+    for (var t = 0; t < tabs.length; t++) {
+      if (tabs[t].textContent.trim().startsWith(prefix)) {
+        tabs[t].click();
+        break;
+      }
+    }
+  }, 60);
+}
+
+function getMimeLabel(mimeType, name) {
+  if (mimeType === 'application/vnd.google-apps.spreadsheet') return {label:'GSHEET', cls:'ico-gsheet'};
+  if (mimeType === 'application/vnd.google-apps.document') return {label:'GDOC', cls:'ico-gdoc'};
+  if (mimeType === 'application/vnd.google-apps.presentation') return {label:'GPPT', cls:'ico-pptx'};
+  var ext = (name||'').split('.').pop().toLowerCase();
+  if (ext==='xlsx'||ext==='xls') return {label:'XLS', cls:'ico-xlsx'};
+  if (ext==='docx'||ext==='doc') return {label:'DOC', cls:'ico-docx'};
+  if (ext==='pdf') return {label:'PDF', cls:'ico-pdf'};
+  if (ext==='pptx'||ext==='ppt') return {label:'PPT', cls:'ico-pptx'};
+  return {label:(ext.toUpperCase().substring(0,4)||'FILE'), cls:'ico-other'};
+}
+
+function getFileUrl(file) {
+  if (file.mimeType && file.mimeType.startsWith('application/vnd.google-apps.')) {
+    return 'https://drive.google.com/open?id=' + file.id;
+  }
+  return 'https://drive.google.com/file/d/' + file.id + '/view';
+}
+
+function fmtDriveDate(s) {
+  if (!s) return '';
+  try { return new Date(s).toLocaleDateString('en-MY', {day:'2-digit',month:'short',year:'numeric'}); } catch(e) { return s; }
+}
+
+function fileMatchesSearch(f, search) {
+  return f.name.toLowerCase().indexOf(search) >= 0;
+}
+
+function renderFileRow(f) {
+  var ico = getMimeLabel(f.mimeType, f.name);
+  var url = f.webViewLink || getFileUrl(f);
+  return '<a class="cf-file" href="'+url+'" target="_blank" rel="noopener" title="'+escHtml(f.name)+'">'
+    +'<div class="file-ico '+ico.cls+'">'+ico.label+'</div>'
+    +'<div class="cf-file-name">'+escHtml(f.name)+'</div>'
+    +'<div class="cf-file-date">'+fmtDriveDate(f.modifiedTime)+'</div>'
+    +'</a>';
+}
+
+// Recursively fetch a folder's files and subfolders up to MAX_DEPTH levels deep
+// depth=0 = client folder; depth=1 = L2 (tab level); depth=2 = L3; depth=3 = L4 (files only)
+var DRIVE_MAX_DEPTH = 3;
+function fetchFolderNode(folderId, depth) {
+  return Promise.all([
+    gapi.client.drive.files.list({
+      q: '"'+folderId+'" in parents and mimeType!="application/vnd.google-apps.folder" and trashed=false',
+      fields: 'files(id,name,mimeType,modifiedTime,webViewLink)', orderBy: 'name', pageSize: 200
+    }),
+    depth < DRIVE_MAX_DEPTH
+      ? gapi.client.drive.files.list({
+          q: '"'+folderId+'" in parents and mimeType="application/vnd.google-apps.folder" and trashed=false',
+          fields: 'files(id,name)', orderBy: 'name', pageSize: 50
+        })
+      : Promise.resolve({result: {files: []}})
+  ]).then(function(results) {
+    var files = results[0].result.files || [];
+    var sfList = results[1].result.files || [];
+    return Promise.all(sfList.map(function(sf) {
+      return fetchFolderNode(sf.id, depth + 1).then(function(contents) {
+        return {folder: sf, files: contents.files, subFolders: contents.subFolders};
+      });
+    })).then(function(subFolders) {
+      return {files: files, subFolders: subFolders};
+    });
+  });
+}
+
+function fetchSourceData(source) {
+  return gapi.client.drive.files.list({
+    q: '"'+source.id+'" in parents and mimeType="application/vnd.google-apps.folder" and trashed=false',
+    fields: 'files(id,name)', orderBy: 'name', pageSize: 100
+  }).then(function(resp) {
+    var clientFolders = resp.result.files || [];
+    return Promise.all(clientFolders.map(function(cf) {
+      return fetchFolderNode(cf.id, 0).then(function(contents) {
+        return {folder: cf, rootFiles: contents.files, subFolders: contents.subFolders};
+      });
+    }));
+  }).then(function(clients) {
+    return {source: source, clients: clients};
+  });
+}
+
+function loadDriveFiles() {
+  if (driveLoaded) return;
+  refreshDriveFiles();
+}
+
+function refreshDriveFiles(onComplete) {
+  driveLoaded = false;
+  activePanelFolderId = null;
+  var panel = document.getElementById('drive-panel');
+  if (panel) panel.innerHTML = '<div class="dp-empty"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 7h5l2 2h11v12H3V7z"/></svg><span>Open a client folder<br>to view its summary</span></div>';
+  document.getElementById('drive-status').textContent = 'Fetching...';
+  // Show skeleton rows while loading
+  document.getElementById('drive-content').innerHTML =
+    [1,2,3,4,5].map(function() {
+      return '<div class="skel-row">'
+        +'<div class="skel" style="width:30px;height:30px;border-radius:7px;flex-shrink:0"></div>'
+        +'<div style="flex:1"><div class="skel" style="height:13px;width:55%;margin-bottom:7px"></div>'
+        +'<div class="skel" style="height:10px;width:30%"></div></div>'
+        +'<div class="skel" style="width:56px;height:22px;border-radius:10px"></div>'
+        +'</div>';
+    }).join('');
+
+  Promise.all(DRIVE_SOURCES.map(fetchSourceData)).then(function(results) {
+    driveData = results;
+    driveLoaded = true;
+    // Build lookup map for pane navigation
+    driveNodeMap = {};
+    driveNavState = {};
+    results.forEach(function(sg) {
+      sg.clients.forEach(function(c) { buildNodeMap(c.subFolders); });
+    });
+    var totalClients = results.reduce(function(n,r){return n+r.clients.length;},0);
+    var totalFiles = results.reduce(function(n,r){
+      return n+r.clients.reduce(function(m,c){
+        var t = c.rootFiles.length;
+        c.subFolders.forEach(function(node){ t += countAllFiles(node); });
+        return m+t;
+      },0);
+    },0);
+    document.getElementById('drive-status').textContent = totalClients+' client'+(totalClients!==1?'s':'')+' \u00b7 '+totalFiles+' files';
+    renderDriveFiles();
+    renderSettingsLinks();
+    if (typeof onComplete === 'function') onComplete();
+  }).catch(function(e) {
+    document.getElementById('drive-content').innerHTML =
+      '<div class="empty"><h3>Could not load Drive files</h3><p>'+errMsg(e)+'</p></div>';
+    document.getElementById('drive-status').textContent = 'Error';
+    toast('Drive load failed: '+errMsg(e),'err');
+  });
+}
+
+// Returns all flat client-folder objects across all sources
+function allClientFolders() {
+  var result = [];
+  driveData.forEach(function(sg) {
+    sg.clients.forEach(function(c) {
+      result.push({folder: c.folder, sourceLabel: sg.source.label});
+    });
+  });
+  return result;
+}
+
+function getLinkedFolder(engId) {
+  var link = folderLinks[engId];
+  if (!link) return null;
+  // Find actual folder data
+  var found = null;
+  driveData.forEach(function(sg) {
+    sg.clients.forEach(function(c) {
+      if (c.folder.id === link.folderId) found = c;
+    });
+  });
+  return found;
+}
+
+function getEngPct(eng) {
+  var done = STEPS.filter(function(_,i){return ((stepStatuses[eng.id+'_'+i]||{}).status||'ns')==='dn';}).length;
+  return Math.round(done/STEPS.length*100);
+}
+
+function getEngOverallStatus(eng) {
+  var sts = STEPS.map(function(_,i){return (stepStatuses[eng.id+'_'+i]||{}).status||'ns';});
+  if (sts.every(function(s){return s==='dn';})) return 'dn';
+  if (sts.some(function(s){return s==='ip';})) return 'ip';
+  return 'ns';
+}
+
+// Find which engagement is linked to a given folder ID (for badge display)
+function getEngagementForFolderId(folderId) {
+  for (var engId in folderLinks) {
+    if (folderLinks[engId].folderId === folderId) {
+      return engagements.find(function(e){return e.id===engId;}) || null;
+    }
+  }
+  return null;
+}
+
+// ── DRIVE HELPERS (recursive node structure) ──────────────────────
+var driveNodeMap = {};   // folderId -> folder node (L2+)
+var driveNavState = {};  // domId+'_'+sfId -> [folderId, ...] nav path
+
+function countAllFiles(node) {
+  var n = (node.files||[]).length;
+  (node.subFolders||[]).forEach(function(sf){ n += countAllFiles(sf); });
+  return n;
+}
+
+function collectAllFiles(node) {
+  var f = (node.files||[]).slice();
+  (node.subFolders||[]).forEach(function(sf){ f = f.concat(collectAllFiles(sf)); });
+  return f;
+}
+
+function anyFileMatches(node, search) {
+  if ((node.files||[]).some(function(f){ return fileMatchesSearch(f, search); })) return true;
+  return (node.subFolders||[]).some(function(sf){ return anyFileMatches(sf, search); });
+}
+
+function latestModified(node) {
+  var t = 0;
+  (node.files||[]).forEach(function(f){ var x=new Date(f.modifiedTime||0).getTime(); if(x>t) t=x; });
+  (node.subFolders||[]).forEach(function(sf){ var x=latestModified(sf); if(x>t) t=x; });
+  return t;
+}
+
+function buildNodeMap(nodes) {
+  (nodes||[]).forEach(function(node) {
+    driveNodeMap[node.folder.id] = node;
+    buildNodeMap(node.subFolders);
+  });
+}
+
+// ── PANE NAVIGATION ───────────────────────────────────────────────
+function renderPaneContent(node, sfId, domId, navPath) {
+  // Follow nav path to current sub-node
+  var currentNode = node;
+  var pathNames = [node.folder.name];
+  for (var i = 0; i < (navPath||[]).length; i++) {
+    var found = null;
+    for (var j = 0; j < currentNode.subFolders.length; j++) {
+      if (currentNode.subFolders[j].folder.id === navPath[i]) { found = currentNode.subFolders[j]; break; }
+    }
+    if (!found) break;
+    currentNode = found;
+    pathNames.push(found.folder.name);
+  }
+
+  var html = '';
+
+  // Breadcrumb (shown when navigated deeper)
+  if (navPath && navPath.length > 0) {
+    var crumbs = pathNames.map(function(name, i) {
+      if (i === pathNames.length - 1) return '<span class="cr-crumb cur">'+escHtml(name)+'</span>';
+      return '<span class="cr-crumb" onclick="navigateBackTo(\''+domId+'\',\''+sfId+'\','+i+');event.stopPropagation()">'+escHtml(name)+'</span><span class="cr-crumb-sep">›</span>';
+    }).join('');
+    html += '<div class="cr-pane-breadcrumb" onclick="navigateBack(\''+domId+'\',\''+sfId+'\')">'
+      +'<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2L4 6l4 4"/></svg>'
+      +'<div class="cr-crumb-trail">'+crumbs+'</div>'
+      +'</div>';
+  }
+
+  // Sub-folders of current level
+  (currentNode.subFolders||[]).forEach(function(sf) {
+    var cnt = countAllFiles(sf);
+    html += '<div class="cr-subfolder-item" onclick="navigateInto(\''+domId+'\',\''+sfId+'\',\''+sf.folder.id+'\')">'
+      +'<div class="cr-subfolder-icon"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="var(--gold)" stroke-width="1.5"><path d="M1 4h5l1.5 2H15v8H1V4z"/></svg></div>'
+      +'<div class="cr-subfolder-name">'+escHtml(sf.folder.name)+'</div>'
+      +'<span class="cr-subfolder-count">'+cnt+' file'+(cnt!==1?'s':'')+'</span>'
+      +'<svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="var(--text-light)" stroke-width="1.5"><path d="M4 2l4 4-4 4"/></svg>'
+      +'</div>';
+  });
+
+  // Files at current level
+  var files = (currentNode.files||[]).slice();
+  if (driveSort === 'recent') files.sort(function(a,b){ return new Date(b.modifiedTime||0)-new Date(a.modifiedTime||0); });
+  if (driveSearchTerm) files = files.filter(function(f){ return fileMatchesSearch(f, driveSearchTerm); });
+
+  if (files.length) {
+    html += files.map(renderFileRow).join('');
+  } else if (!(currentNode.subFolders||[]).length) {
+    html += '<div class="cf-empty">No files in this folder</div>';
+  }
+  return html;
+}
+
+function navigateInto(domId, sfId, targetId) {
+  var key = domId+'_'+sfId;
+  driveNavState[key] = (driveNavState[key]||[]).concat([targetId]);
+  refreshPaneContent(domId, sfId);
+}
+
+function navigateBack(domId, sfId) {
+  var key = domId+'_'+sfId;
+  if (driveNavState[key] && driveNavState[key].length) driveNavState[key] = driveNavState[key].slice(0,-1);
+  refreshPaneContent(domId, sfId);
+}
+
+function navigateBackTo(domId, sfId, depth) {
+  var key = domId+'_'+sfId;
+  driveNavState[key] = (driveNavState[key]||[]).slice(0, depth);
+  refreshPaneContent(domId, sfId);
+}
+
+function refreshPaneContent(domId, sfId) {
+  var pane = document.getElementById(domId+'-pane-'+sfId);
+  if (!pane) return;
+  var node = driveNodeMap[sfId];
+  if (!node) return;
+  var el = pane.querySelector('.cr-pane-content');
+  if (el) el.innerHTML = renderPaneContent(node, sfId, domId, driveNavState[domId+'_'+sfId]||[]);
+}
+
+function renderDriveFiles() {
+  var container = document.getElementById('drive-content');
+  if (!driveData || !driveData.length) {
+    container.innerHTML = '<div class="empty"><h3>No folders found</h3></div>';
+    return;
+  }
+
+  var html = '';
+  var totalVisible = 0;
+
+  driveData.forEach(function(sourceGroup) {
+    var rowsHtml = '';
+    var visibleRows = 0;
+
+    // Sort clients
+    var clients = sourceGroup.clients.slice();
+    if (driveSort === 'recent') {
+      clients.sort(function(a,b) {
+        function latest(c) {
+          var t = latestModified({files: c.rootFiles, subFolders: c.subFolders});
+          return t;
+        }
+        return latest(b)-latest(a);
+      });
+    }
+
+    clients.forEach(function(d) {
+      var fid = d.folder.id;
+
+      // Apply folder filter
+      if (driveFolderFilter && fid !== driveFolderFilter.folderId) return;
+
+      // Apply linked-only filter
+      if (driveLinkedOnly && !getEngagementForFolderId(fid)) return;
+
+      // Apply search filter across all files (recursive)
+      var hasMatch = !driveSearchTerm;
+      if (driveSearchTerm) {
+        if (d.folder.name.toLowerCase().indexOf(driveSearchTerm)>=0) { hasMatch=true; }
+        else {
+          hasMatch = d.subFolders.some(function(node){ return anyFileMatches(node, driveSearchTerm); })
+            || d.rootFiles.some(function(f){ return fileMatchesSearch(f, driveSearchTerm); });
+        }
+      }
+      if (!hasMatch) return;
+
+      // Linked engagement badge
+      var linkedEng = getEngagementForFolderId(fid);
+      var isLinked = !!linkedEng;
+      var engBadge = '';
+      if (linkedEng) {
+        var st = getEngOverallStatus(linkedEng);
+        var pct = getEngPct(linkedEng);
+        engBadge = '<span class="cf-eng-badge '+st+'">'+pct+'% '+SL[st]+'</span>';
+      }
+
+      var domId = 'cr-'+fid;
+
+      // Build tabs: one per L2 subfolder node
+      var tabsHtml = d.subFolders.map(function(node, idx) {
+        var cnt = countAllFiles(node);
+        var sfId = node.folder.id;
+        return '<div class="cr-tab'+(idx===0?' on':'')+'" id="'+domId+'-tab-'+sfId+'" onclick="selectTab(\''+domId+'\',\''+sfId+'\')">'
+          +'<svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 3h3l1 1.5H11v6H1V3z"/></svg>'
+          +escHtml(node.folder.name)
+          +'<span class="cr-tab-count">'+cnt+'</span>'
+          +'</div>';
+      }).join('');
+
+      // Build file panes: one per L2 subfolder node, with nested navigation
+      var panesHtml = d.subFolders.map(function(node, idx) {
+        var sfId = node.folder.id;
+        var uploadUrl = 'https://drive.google.com/drive/folders/'+sfId;
+        var cnt = countAllFiles(node);
+        var initContent = renderPaneContent(node, sfId, domId, []);
+        return '<div class="cr-files-pane" id="'+domId+'-pane-'+sfId+'" style="display:'+(idx===0?'flex':'none')+';flex-direction:column">'
+          +'<div class="cr-files-upload">'
+          +'<span class="cr-files-upload-label">'+cnt+' file'+(cnt!==1?'s':'')+' total</span>'
+          +'<a class="sf-upload-btn" href="'+uploadUrl+'" target="_blank" rel="noopener">&#8679; Open in Drive</a>'
+          +'</div>'
+          +'<div class="cr-pane-content">'+initContent+'</div>'
+          +'</div>';
+      }).join('');
+
+      // Root files (General tab)
+      var rootFiles = d.rootFiles.slice();
+      if (driveSort==='recent') rootFiles.sort(function(a,b){return new Date(b.modifiedTime||0)-new Date(a.modifiedTime||0);});
+      var filteredRoot = driveSearchTerm ? rootFiles.filter(function(f){return fileMatchesSearch(f,driveSearchTerm);}) : rootFiles;
+      if (filteredRoot.length) {
+        tabsHtml += '<div class="cr-tab" id="'+domId+'-tab-root" onclick="selectTab(\''+domId+'\',\'root\')">General<span class="cr-tab-count">'+filteredRoot.length+'</span></div>';
+        panesHtml += '<div class="cr-files-pane" id="'+domId+'-pane-root" style="display:none;flex-direction:column"><div class="cr-pane-content">'+filteredRoot.map(renderFileRow).join('')+'</div></div>';
+      }
+
+      visibleRows++;
+      rowsHtml += '<div class="client-row" id="'+domId+'">'
+        +'<div class="cr-header'+(isLinked?' linked':'')+'" onclick="toggleClientRow(\''+domId+'\')">'
+        +'<div class="cr-icon"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="var(--gold)" stroke-width="1.5"><path d="M1 4h5l1.5 2H15v8H1V4z"/></svg></div>'
+        +'<div class="cr-name" title="'+escHtml(d.folder.name)+'">'+escHtml(d.folder.name)+'</div>'
+        +'<div class="cr-meta">'
+        +engBadge
+        +'<button class="cr-link-btn'+(isLinked?' linked':'')+'" onclick="event.stopPropagation();openLinkModal(\''+fid+'\',\''+escHtml(d.folder.name)+'\')">'+(isLinked?'&#128279; Linked':'+ Link')+'</button>'
+        +'<span class="cr-chevron">&#9654;</span>'
+        +'</div>'
+        +'</div>'
+        +'<div class="cr-body" id="'+domId+'-body">'
+        +'<div class="cr-tabs">'+tabsHtml+'</div>'
+        +'<div style="flex:1;min-width:0">'+panesHtml+'</div>'
+        +'</div>'
+        +'</div>';
+    });
+
+    if (!visibleRows) return;
+    totalVisible += visibleRows;
+    html += '<div class="drive-source-section">'
+      +'<div class="drive-source-label"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 4h5l1.5 2H15v8H1V4z"/></svg>'+escHtml(sourceGroup.source.label)+'</div>'
+      +rowsHtml
+      +'</div>';
+  });
+
+  if (!totalVisible) {
+    var emptyMsg = driveSearchTerm
+      ? '<div class="empty"><h3>No results for "'+escHtml(driveSearchTerm)+'"</h3><p>Try a different search term or clear the filter.</p></div>'
+      : '<div class="empty"><h3>No folders found</h3><p>No folders match the current filter.</p></div>';
+    container.innerHTML = emptyMsg;
+    return;
+  }
+  container.innerHTML = html;
+
+  // Auto-open if only one row visible
+  if (totalVisible === 1) {
+    var firstRow = container.querySelector('.client-row');
+    if (firstRow) openClientRow(firstRow.id);
+  } else if (activePanelFolderId) {
+    // Re-render panel with existing selection (DOM was reset by innerHTML)
+    renderDrivePanel(activePanelFolderId);
+  }
+}
+
+function toggleClientRow(domId) {
+  var body = document.getElementById(domId+'-body');
+  var hdr = document.querySelector('#'+domId+' .cr-header');
+  if (!body) return;
+  if (body.classList.contains('open')) {
+    body.classList.remove('open');
+    if (hdr) hdr.classList.remove('open');
+  } else {
+    openClientRow(domId);
+  }
+}
+
+function openClientRow(domId) {
+  var body = document.getElementById(domId+'-body');
+  var hdr = document.querySelector('#'+domId+' .cr-header');
+  if (body) body.classList.add('open');
+  if (hdr) hdr.classList.add('open');
+  // Extract folderId from domId (domId = 'cr-' + folderId)
+  var fid = domId.replace(/^cr-/, '');
+  activePanelFolderId = fid;
+  renderDrivePanel(fid);
+}
+
+function selectTab(domId, sfId) {
+  // Deactivate all tabs and panes for this row
+  document.querySelectorAll('#'+domId+' .cr-tab').forEach(function(t){t.classList.remove('on');});
+  document.querySelectorAll('#'+domId+' .cr-files-pane').forEach(function(p){p.style.display='none';});
+  var tab = document.getElementById(domId+'-tab-'+sfId);
+  var pane = document.getElementById(domId+'-pane-'+sfId);
+  if (tab) tab.classList.add('on');
+  if (pane) pane.style.display='flex';
+}
+
+function escHtml(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── LINK MODAL ────────────────────────────────────────────────────
+var linkModalFolderId = null;
+var linkModalFolderName = null;
+var linkModalSelectedEngId = null;
+
+function openLinkModal(folderId, folderName) {
+  linkModalFolderId = folderId;
+  linkModalFolderName = folderName;
+  linkModalSelectedEngId = null;
+  document.getElementById('link-eng-name').textContent = folderName;
+
+  // Find if already linked
+  var existingEngId = null;
+  for (var eid in folderLinks) { if (folderLinks[eid].folderId===folderId) { existingEngId=eid; break; } }
+  linkModalSelectedEngId = existingEngId;
+
+  var list = document.getElementById('link-folder-list');
+  if (!engagements.length) {
+    list.innerHTML = '<div style="font-size:13px;color:var(--text-light);padding:12px">No engagements found. Create one first.</div>';
+  } else {
+    list.innerHTML = engagements.map(function(e) {
+      var isOn = e.id === existingEngId;
+      return '<div class="link-opt'+(isOn?' on':'')+'" onclick="selectLinkEng(\''+e.id+'\')">'
+        +'<div style="width:28px;height:28px;border-radius:6px;background:var(--cream);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--navy)">'+escHtml(e.code||e.client.substring(0,3)).toUpperCase()+'</div>'
+        +'<div style="flex:1"><div class="link-opt-name">'+escHtml(e.client)+'</div><div class="link-opt-source">'+escHtml(e.type)+(e.tp?' \u00b7 '+escHtml(e.tp):'')+'</div></div>'
+        +(isOn?'<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--gold)" stroke-width="2"><polyline points="2,8 6,12 14,4"/></svg>':'')
+        +'</div>';
+    }).join('');
+  }
+  document.getElementById('link-modal').classList.add('open');
+}
+
+function selectLinkEng(engId) {
+  linkModalSelectedEngId = engId;
+  document.querySelectorAll('.link-opt').forEach(function(el,i){
+    var isOn = engagements[i] && engagements[i].id === engId;
+    el.classList.toggle('on', isOn);
+    // update checkmark
+    var existing = el.querySelector('svg');
+    if (isOn && !existing) {
+      el.insertAdjacentHTML('beforeend','<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--gold)" stroke-width="2"><polyline points="2,8 6,12 14,4"/></svg>');
+    } else if (!isOn && existing) {
+      existing.remove();
+    }
+  });
+}
+
+function saveFolderLink() {
+  if (!linkModalSelectedEngId) { toast('Select an engagement first','err'); return; }
+  // Remove any existing link for this engagement
+  for (var eid in folderLinks) {
+    if (folderLinks[eid].folderId === linkModalFolderId) delete folderLinks[eid];
+  }
+  folderLinks[linkModalSelectedEngId] = {folderId: linkModalFolderId, folderName: linkModalFolderName};
+  saveFolderLinks();
+  closeLinkModal();
+  renderSettingsLinks();
+  // Force full Drive refresh so driveData reflects the newly linked folder
+  driveLoaded = false;
+  refreshDriveFiles(function() {
+    if (activeEngId) renderOverview(activeEngId);
+  });
+  toast('Folder linked successfully','ok');
+}
+
+function clearFolderLink() {
+  // Remove any link for this folder
+  for (var eid in folderLinks) {
+    if (folderLinks[eid].folderId === linkModalFolderId) { delete folderLinks[eid]; break; }
+  }
+  saveFolderLinks();
+  closeLinkModal();
+  renderDriveFiles();
+  renderSettingsLinks();
+  if (activeEngId) renderOverview(activeEngId);
+  toast('Link cleared','ok');
+}
+
+function closeLinkModal() {
+  document.getElementById('link-modal').classList.remove('open');
+  linkModalFolderId = null;
+  linkModalFolderName = null;
+  linkModalSelectedEngId = null;
+}
+
+// ── SETTINGS ─────────────────────────────────────────────────────
+function renderSettingsLinks() {
+  var el = document.getElementById('settings-links-list');
+  if (!engagements.length) {
+    el.innerHTML = '<div class="settings-row"><div><div class="settings-row-label">No engagements yet</div></div></div>';
+    return;
+  }
+  el.innerHTML = engagements.map(function(e) {
+    var link = folderLinks[e.id];
+    return '<div class="settings-row">'
+      +'<div><div class="settings-row-label">'+escHtml(e.client)+'</div><div class="settings-row-sub">'+escHtml(e.type)+(e.tp?' \u00b7 '+escHtml(e.tp):'')+'</div></div>'
+      +'<div style="display:flex;align-items:center;gap:8px">'
+      +(link ? '<span class="settings-row-val">&#128279; '+escHtml(link.folderName)+'</span>' : '<span class="settings-row-val" style="color:var(--text-light)">Not linked</span>')
+      +'<button class="btn" style="font-size:11px;padding:4px 10px" onclick="openLinkModalForEng(\''+e.id+'\')">'+( link?'Change':'Link Folder')+'</button>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+
+  // Drive sources list
+  var src = document.getElementById('settings-sources-list');
+  src.innerHTML = DRIVE_SOURCES.map(function(s){
+    return '<div class="settings-row"><div><div class="settings-row-label">'+escHtml(s.label)+'</div><div class="settings-row-sub" style="font-family:monospace">'+s.id+'</div></div></div>';
+  }).join('');
+}
+
+function openLinkModalForEng(engId) {
+  // Open the link modal pre-filtered to select a folder for this engagement
+  var eng = engagements.find(function(e){return e.id===engId;});
+  if (!eng) return;
+  var link = folderLinks[engId];
+  var folderId = link ? link.folderId : null;
+  var folderName = link ? link.folderName : eng.client;
+
+  linkModalFolderId = folderId;
+  linkModalFolderName = folderName;
+  linkModalSelectedEngId = engId;
+
+  document.getElementById('link-eng-name').textContent = eng.client;
+
+  // Show all Drive folders for selection
+  var allFolders = allClientFolders();
+  var list = document.getElementById('link-folder-list');
+  if (!allFolders.length) {
+    list.innerHTML = '<div style="font-size:13px;color:var(--text-light);padding:12px">Load Client Files first to see available folders.</div>';
+  } else {
+    list.innerHTML = allFolders.map(function(cf) {
+      var isOn = folderId && cf.folder.id === folderId;
+      return '<div class="link-opt'+(isOn?' on':'')+'" onclick="selectLinkFolder(\''+cf.folder.id+'\',\''+escHtml(cf.folder.name)+'\')">'
+        +'<div class="cf-icon" style="width:28px;height:28px;border-radius:6px"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--gold)" stroke-width="1.5"><path d="M1 4h5l1.5 2H15v8H1V4z"/></svg></div>'
+        +'<div style="flex:1"><div class="link-opt-name">'+escHtml(cf.folder.name)+'</div><div class="link-opt-source">'+escHtml(cf.sourceLabel)+'</div></div>'
+        +(isOn?'<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--gold)" stroke-width="2"><polyline points="2,8 6,12 14,4"/></svg>':'')
+        +'</div>';
+    }).join('');
+  }
+  document.getElementById('link-modal').classList.add('open');
+}
+
+function selectLinkFolder(folderId, folderName) {
+  linkModalFolderId = folderId;
+  linkModalFolderName = folderName;
+  document.querySelectorAll('#link-folder-list .link-opt').forEach(function(el) {
+    var nameEl = el.querySelector('.link-opt-name');
+    var isOn = nameEl && nameEl.textContent === folderName;
+    el.classList.toggle('on', isOn);
+    var existing = el.querySelector('svg:last-child');
+    if (isOn && !existing) {
+      el.insertAdjacentHTML('beforeend','<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--gold)" stroke-width="2"><polyline points="2,8 6,12 14,4"/></svg>');
+    } else if (!isOn && existing) {
+      existing.remove();
+    }
+  });
+}
+
+// ── DRIVE PANEL ───────────────────────────────────────────────────
+function renderDrivePanel(folderId) {
+  var panel = document.getElementById('drive-panel');
+  if (!panel) return;
+
+  // Find client data
+  var clientData = null, sourceLabel = '';
+  driveData.forEach(function(sg) {
+    sg.clients.forEach(function(c) {
+      if (c.folder.id === folderId) { clientData = c; sourceLabel = sg.source.label; }
+    });
+  });
+
+  if (!clientData) {
+    panel.innerHTML = '<div class="dp-empty"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 7h5l2 2h11v12H3V7z"/></svg><span>Open a client folder<br>to view its summary</span></div>';
+    return;
+  }
+
+  // Aggregate all files recursively
+  var allFiles = clientData.rootFiles.slice();
+  clientData.subFolders.forEach(function(node) {
+    allFiles = allFiles.concat(collectAllFiles(node));
+  });
+
+  // File type counts
+  var typeCounts = {};
+  allFiles.forEach(function(f) {
+    var ico = getMimeLabel(f.mimeType, f.name);
+    typeCounts[ico.cls] = (typeCounts[ico.cls] || 0) + 1;
+  });
+
+  // Most recently modified file
+  var recentFile = allFiles.slice().sort(function(a,b) {
+    return new Date(b.modifiedTime||0) - new Date(a.modifiedTime||0);
+  })[0];
+
+  // Linked engagement
+  var linkedEng = getEngagementForFolderId(folderId);
+  var totalFiles = allFiles.length;
+  var subCount = clientData.subFolders.length;
+
+  // Engagement section
+  var engSection = '';
+  if (linkedEng) {
+    var sts = STEPS.map(function(_,i){ return (stepStatuses[linkedEng.id+'_'+i]||{}).status||'ns'; });
+    var done = sts.filter(function(s){return s==='dn';}).length;
+    var pct = Math.round(done/STEPS.length*100);
+    var st = getEngOverallStatus(linkedEng);
+    var miniDots = STEPS.map(function(s,i) {
+      return '<div class="dp-pdot '+sts[i]+'" title="'+s.name+'">'+(i+1)+'</div>';
+    }).join('');
+    engSection = '<div class="dp-eng-card">'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:2px">'
+      +'<div class="dp-eng-name">'+escHtml(linkedEng.client)+'</div>'
+      +'<span class="cf-eng-badge '+st+'">'+pct+'%</span>'
+      +'</div>'
+      +'<div class="dp-eng-type">'+escHtml(linkedEng.type)+(linkedEng.tp?' \u00b7 '+escHtml(linkedEng.tp):'')+'</div>'
+      +'<div class="dp-mini-dots">'+miniDots+'</div>'
+      +'<button class="btn" style="font-size:11px;padding:5px 10px;width:100%;justify-content:center" onclick="selectEng(\''+linkedEng.id+'\')">View Engagement</button>'
+      +'</div>';
+  } else {
+    engSection = '<div style="display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text-light);padding:4px 0">'
+      +'<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 6L14 2M14 2h-4M14 2v4M6 10L2 14M2 14h4M2 14v-4"/></svg>'
+      +'<span>No engagement linked</span>'
+      +'</div>';
+  }
+
+  // File type breakdown
+  var typeLabels = {'ico-xlsx':'Excel','ico-gsheet':'Google Sheet','ico-docx':'Word','ico-gdoc':'Google Doc','ico-pdf':'PDF','ico-pptx':'PowerPoint','ico-other':'Other'};
+  var typeHtml = Object.keys(typeCounts).map(function(cls) {
+    var lbl = typeLabels[cls] || cls.replace('ico-','');
+    return '<div class="dp-type-row">'
+      +'<div class="file-ico '+cls+'" style="width:20px;height:20px;font-size:8px;border-radius:4px">'+cls.replace('ico-','').toUpperCase().substring(0,3)+'</div>'
+      +'<div class="dp-type-label">'+lbl+'</div>'
+      +'<div class="dp-type-count">'+typeCounts[cls]+'</div>'
+      +'</div>';
+  }).join('');
+  if (!typeHtml) typeHtml = '<div style="font-size:12px;color:var(--text-light)">No files yet</div>';
+
+  // Most recent file
+  var recentHtml = '';
+  if (recentFile) {
+    var ico = getMimeLabel(recentFile.mimeType, recentFile.name);
+    var url = recentFile.webViewLink || getFileUrl(recentFile);
+    recentHtml = '<a class="dp-recent-file" href="'+url+'" target="_blank" rel="noopener">'
+      +'<div class="file-ico '+ico.cls+'" style="width:22px;height:22px;font-size:8px;border-radius:4px">'+ico.label.substring(0,3)+'</div>'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="font-size:11px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escHtml(recentFile.name)+'</div>'
+      +'<div style="font-size:10px;color:var(--text-light);font-family:\'DM Mono\',monospace">'+fmtDriveDate(recentFile.modifiedTime)+'</div>'
+      +'</div>'
+      +'<svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="var(--text-light)" stroke-width="1.5"><path d="M2 10L10 2M10 2H5M10 2v5"/></svg>'
+      +'</a>';
+  }
+
+  var folderUrl = 'https://drive.google.com/drive/folders/'+folderId;
+
+  panel.innerHTML =
+    '<div class="dp-header">'
+    +'<div class="dp-folder-name" title="'+escHtml(clientData.folder.name)+'">'+escHtml(clientData.folder.name)+'</div>'
+    +'<div class="dp-source">'+escHtml(sourceLabel)+'</div>'
+    +'</div>'
+    +'<div class="dp-section"><div class="dp-section-title">Linked Engagement</div>'+engSection+'</div>'
+    +'<div class="dp-section"><div class="dp-section-title">Files Summary</div>'
+    +'<div class="dp-stats">'
+    +'<div class="dp-stat"><div class="dp-stat-val">'+totalFiles+'</div><div class="dp-stat-lbl">Files</div></div>'
+    +'<div class="dp-stat"><div class="dp-stat-val">'+subCount+'</div><div class="dp-stat-lbl">Folders</div></div>'
+    +'</div>'
+    +typeHtml
+    +'</div>'
+    +(recentFile ? '<div class="dp-section"><div class="dp-section-title">Most Recently Modified</div>'+recentHtml+'</div>' : '')
+    +'<div class="dp-section">'
+    +'<a class="btn btn-navy" style="width:100%;justify-content:center;text-decoration:none;font-size:12px" href="'+folderUrl+'" target="_blank" rel="noopener">&#128194; Open Folder in Drive</a>'
+    +'</div>';
+}
+
+// ── PANEL RESIZE ─────────────────────────────────────────────────
+function initPanelResize() {
+  var handle = document.getElementById('drive-panel-handle');
+  var panel  = document.getElementById('drive-panel');
+  if (!handle || !panel) return;
+  // Restore saved width
+  try { var w = localStorage.getItem('ia_panel_width'); if(w) panel.style.width = w+'px'; } catch(e){}
+  var resizing = false, startX = 0, startW = 0;
+  handle.addEventListener('mousedown', function(e) {
+    resizing = true; startX = e.clientX; startW = panel.offsetWidth;
+    handle.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (!resizing) return;
+    var dx = startX - e.clientX; // drag left = wider panel
+    panel.style.width = Math.max(200, Math.min(520, startW + dx)) + 'px';
+  });
+  document.addEventListener('mouseup', function() {
+    if (!resizing) return;
+    resizing = false;
+    handle.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    try { localStorage.setItem('ia_panel_width', panel.offsetWidth); } catch(e){}
+  });
+}
+
+// ── BOOT ──────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',function(){
+  initPills();
+  updatePrompt();
+  renderSettingsLinks();
+  renderPromptHistory();
+  initPanelResize();
+  document.getElementById('signin-btn').disabled=true;
+  setStatus('Initialising Google API...');
+});
+</script>
+
+<script src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+<script src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+</body>
+</html>
