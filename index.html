@@ -1129,14 +1129,16 @@ function writeHeader(tab) {
 
 function loadData() {
   showLoad('Loading engagements...');
-  var flPromise = gapi.client.sheets.spreadsheets.values
-    .get({spreadsheetId:SHEET_ID, range:'FolderLinks!A2:C'})
-    .catch(function(){ return {result:{values:[]}}; });
+  // gapi.client.Request has .then() but NOT .catch() — wrap in Promise.resolve() first
+  var flPromise = Promise.resolve(
+    gapi.client.sheets.spreadsheets.values
+      .get({spreadsheetId:SHEET_ID, range:'FolderLinks!A2:C'})
+  ).catch(function(){ return {result:{values:[]}}; });
 
   Promise.all([
-    gapi.client.sheets.spreadsheets.values.get({spreadsheetId:SHEET_ID,range:'Engagements!A2:M'}),
-    gapi.client.sheets.spreadsheets.values.get({spreadsheetId:SHEET_ID,range:'StepStatus!A2:E'}),
-    gapi.client.sheets.spreadsheets.values.get({spreadsheetId:SHEET_ID,range:'ActivityLog!A2:F'}),
+    Promise.resolve(gapi.client.sheets.spreadsheets.values.get({spreadsheetId:SHEET_ID,range:'Engagements!A2:M'})),
+    Promise.resolve(gapi.client.sheets.spreadsheets.values.get({spreadsheetId:SHEET_ID,range:'StepStatus!A2:E'})),
+    Promise.resolve(gapi.client.sheets.spreadsheets.values.get({spreadsheetId:SHEET_ID,range:'ActivityLog!A2:F'})),
     flPromise
   ]).then(function(results) {
     engagements = (results[0].result.values||[]).map(function(r) {
