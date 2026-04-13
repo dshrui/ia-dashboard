@@ -942,6 +942,8 @@ function saveEditEngagement() {
     if (activeEngId === editEngId) renderOverview(activeEngId);
     toast('Engagement updated!', 'ok');
   }).catch(function(e) {
+    console.error('saveEditEngagement error:', e);
+    if (is401(e)) { handleTokenExpiry(); return; }
     toast('Update failed: '+errMsg(e), 'err');
   }).then(function() { hideLoad(); });
 }
@@ -975,13 +977,12 @@ var gapiReady = false;
 
 function gapiLoaded() {
   gapi.load('client', function() {
-    gapi.client.init({
-      discoveryDocs: [
-        'https://sheets.googleapis.com/$discovery/rest?version=v4',
-        'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'
-      ]
-    }).then(function() {
-      // gapi.client.init is done — NOW safe to set token and call APIs
+    // Use gapi.client.load() directly — more reliable than gapi.client.init()
+    // with discoveryDocs, which can resolve before docs are actually loaded.
+    Promise.all([
+      gapi.client.load('https://sheets.googleapis.com/$discovery/rest?version=v4'),
+      gapi.client.load('https://www.googleapis.com/discovery/v1/apis/drive/v3/rest')
+    ]).then(function() {
       gapiReady = true;
 
       var token = getTokenFromHash();
@@ -998,7 +999,8 @@ function gapiLoaded() {
       // No token — show sign-in button
       setStatus('Ready — click to sign in');
       document.getElementById('signin-btn').disabled = false;
-    }).catch(function() {
+    }).catch(function(e) {
+      console.error('GAPI load error:', e);
       setStatus('Init failed — please refresh');
     });
   });
@@ -1097,6 +1099,25 @@ function errMsg(e) {
   try { return JSON.stringify(e); } catch(_) { return 'Unknown error'; }
 }
 
+function is401(e) {
+  return e && (e.status === 401
+    || (e.result && e.result.error && e.result.error.code === 401)
+    || errMsg(e).toLowerCase().indexOf('unauthorized') !== -1
+    || errMsg(e).toLowerCase().indexOf('invalid credentials') !== -1);
+}
+
+function handleTokenExpiry() {
+  try {
+    sessionStorage.removeItem('ia_token');
+    sessionStorage.removeItem('ia_token_expiry');
+  } catch(_) {}
+  hideLoad();
+  document.getElementById('app').classList.remove('ready');
+  document.getElementById('auth').style.display = 'flex';
+  setStatus('Session expired — click to sign in again');
+  document.getElementById('signin-btn').disabled = !gapiReady;
+}
+
 function initSheets() { return Promise.resolve(); }
 
 function writeHeader(tab) {
@@ -1143,6 +1164,8 @@ function loadData() {
     toast('Synced with Google Sheets','ok');
     hideLoad();
   }).catch(function(e) {
+    console.error('loadData error:', e);
+    if (is401(e)) { handleTokenExpiry(); return; }
     hideLoad();
     toast('Load failed: '+errMsg(e),'err');
   });
@@ -1169,6 +1192,8 @@ function saveEngagement() {
     selectEng(id);
     toast('Engagement saved!','ok');
   }).catch(function(e) {
+    console.error('saveEngagement error:', e);
+    if (is401(e)) { handleTokenExpiry(); return; }
     toast('Save failed: '+errMsg(e),'err');
   }).then(function() { hideLoad(); });
 }
@@ -1207,8 +1232,11 @@ function cycleStep(eid, idx) {
   }).then(function() {
     renderOverview(eid); renderLog(); renderSidebar();
     toast('Step '+(idx+1)+' \u2192 '+SL[next],'ok');
-  }).catch(function(e){toast('Update failed: '+errMsg(e),'err');})
-  .then(function(){hideLoad();});
+  }).catch(function(e){
+    console.error('cycleStep error:', e);
+    if (is401(e)) { handleTokenExpiry(); return; }
+    toast('Update failed: '+errMsg(e),'err');
+  }).then(function(){hideLoad();});
 }
 
 function addLog(eid,client,action,detail,ts) {
@@ -1334,7 +1362,7 @@ function renderOverview(eid) {
     +'<div class="mc"><div class="mc-lbl">Progress</div><div class="mc-val gold">'+pct+'%</div></div>'
     +'<div class="mc"><div class="mc-lbl">Done</div><div class="mc-val green">'+done+'</div></div>'
     +'<div class="mc"><div class="mc-lbl">In Progress</div><div class="mc-val orange">'+prog+'</div></div>'
-    +'<div class="mc"><div class="mc-lbl">Not Started</div><div class="mc-val">'+(6-done-prog)+'</div></div>'
+    +'<div class="mc"><div class="mc-lbl">Not Started</div><div class="mc-val">'+(STEPS.length-done-prog)+'</div></div>'
     +'<div class="mc"><div class="mc-lbl">Risk Level</div><div class="mc-val" style="font-size:18px;padding-top:5px">'+(eng.risk||'\u2014')+'</div></div>'
     +'</div>'
     +'<div class="pipeline">'+STEPS.map(function(s,i){
