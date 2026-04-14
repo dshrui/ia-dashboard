@@ -1942,41 +1942,60 @@ function renderFileRow(f) {
     +'</a>';
 }
 
-// Recursively fetch a folder's files and ALL subfolders at every depth.
-// Recursion terminates naturally when a folder has no subfolders.
-// No depth cap — captures the full folder tree however deep it goes.
-function fetchFolderNode(folderId) {
+// Fetch ALL files and folders inside a client folder in exactly 2 API calls
+// using the Drive 'ancestors' query, then reconstruct the tree in memory.
+// This replaces the old per-folder recursive approach which fired O(N) concurrent
+// requests and hit Google's rate limiter (403) on large folder structures.
+function fetchClientData(clientFolderId) {
   return Promise.all([
-    gapi.client.drive.files.list({
-      q: '"'+folderId+'" in parents and mimeType!="application/vnd.google-apps.folder" and trashed=false',
-      fields: 'files(id,name,mimeType,modifiedTime,webViewLink)', orderBy: 'name', pageSize: 200
-    }),
-    gapi.client.drive.files.list({
-      q: '"'+folderId+'" in parents and mimeType="application/vnd.google-apps.folder" and trashed=false',
-      fields: 'files(id,name)', orderBy: 'name', pageSize: 100
-    })
+    Promise.resolve(gapi.client.drive.files.list({
+      q: '"'+clientFolderId+'" in ancestors and mimeType!="application/vnd.google-apps.folder" and trashed=false',
+      fields: 'files(id,name,mimeType,modifiedTime,webViewLink,parents)',
+      orderBy: 'name', pageSize: 1000
+    })),
+    Promise.resolve(gapi.client.drive.files.list({
+      q: '"'+clientFolderId+'" in ancestors and mimeType="application/vnd.google-apps.folder" and trashed=false',
+      fields: 'files(id,name,parents)',
+      orderBy: 'name', pageSize: 1000
+    }))
   ]).then(function(results) {
-    var files = results[0].result.files || [];
-    var sfList = results[1].result.files || [];
-    return Promise.all(sfList.map(function(sf) {
-      return fetchFolderNode(sf.id).then(function(contents) {
-        return {folder: sf, files: contents.files, subFolders: contents.subFolders};
-      });
-    })).then(function(subFolders) {
-      return {files: files, subFolders: subFolders};
+    var allFiles   = results[0].result.files || [];
+    var allFolders = results[1].result.files || [];
+
+    // Build node map — create all folder nodes first so wiring order doesn't matter
+    var nodeMap = {};
+    nodeMap[clientFolderId] = {folder:{id:clientFolderId}, files:[], subFolders:[]};
+    allFolders.forEach(function(f) {
+      nodeMap[f.id] = {folder:f, files:[], subFolders:[]};
     });
+
+    // Wire folder hierarchy. Because the API returns names alphabetically,
+    // siblings within each parent end up in alphabetical order.
+    allFolders.forEach(function(f) {
+      var pid = f.parents && f.parents[0];
+      if (pid && nodeMap[pid]) nodeMap[pid].subFolders.push(nodeMap[f.id]);
+    });
+
+    // Assign each file to its parent folder node
+    allFiles.forEach(function(f) {
+      var pid = f.parents && f.parents[0];
+      if (pid && nodeMap[pid]) nodeMap[pid].files.push(f);
+    });
+
+    var root = nodeMap[clientFolderId];
+    return {rootFiles: root.files, subFolders: root.subFolders};
   });
 }
 
 function fetchSourceData(source) {
-  return gapi.client.drive.files.list({
+  return Promise.resolve(gapi.client.drive.files.list({
     q: '"'+source.id+'" in parents and mimeType="application/vnd.google-apps.folder" and trashed=false',
     fields: 'files(id,name)', orderBy: 'name', pageSize: 100
-  }).then(function(resp) {
+  })).then(function(resp) {
     var clientFolders = resp.result.files || [];
     return Promise.all(clientFolders.map(function(cf) {
-      return fetchFolderNode(cf.id).then(function(contents) {
-        return {folder: cf, rootFiles: contents.files, subFolders: contents.subFolders};
+      return fetchClientData(cf.id).then(function(contents) {
+        return {folder: cf, rootFiles: contents.rootFiles, subFolders: contents.subFolders};
       });
     }));
   }).then(function(clients) {
