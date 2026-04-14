@@ -1952,12 +1952,16 @@ function fetchClientData(clientFolderId) {
     Promise.resolve(gapi.client.drive.files.list({
       q: '"'+clientFolderId+'" in ancestors and mimeType!="application/vnd.google-apps.folder" and trashed=false',
       fields: 'files(id,name,mimeType,modifiedTime,webViewLink,parents)',
-      orderBy: 'name', pageSize: 1000
+      orderBy: 'name', pageSize: 1000,
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true
     })),
     Promise.resolve(gapi.client.drive.files.list({
       q: '"'+clientFolderId+'" in ancestors and mimeType="application/vnd.google-apps.folder" and trashed=false',
       fields: 'files(id,name,parents)',
-      orderBy: 'name', pageSize: 1000
+      orderBy: 'name', pageSize: 1000,
+      supportsAllDrives: true,
+      includeItemsFromAllDrives: true
     }))
   ]).then(function(results) {
     var allFiles   = results[0].result.files || [];
@@ -1991,7 +1995,9 @@ function fetchClientData(clientFolderId) {
 function fetchSourceData(source) {
   return Promise.resolve(gapi.client.drive.files.list({
     q: '"'+source.id+'" in parents and mimeType="application/vnd.google-apps.folder" and trashed=false',
-    fields: 'files(id,name)', orderBy: 'name', pageSize: 100
+    fields: 'files(id,name)', orderBy: 'name', pageSize: 100,
+    supportsAllDrives: true,
+    includeItemsFromAllDrives: true
   })).then(function(resp) {
     var clientFolders = resp.result.files || [];
     return Promise.all(clientFolders.map(function(cf) {
