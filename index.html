@@ -1942,26 +1942,24 @@ function renderFileRow(f) {
     +'</a>';
 }
 
-// Recursively fetch a folder's files and subfolders up to MAX_DEPTH levels deep
-// depth=0 = client folder; depth=1 = L2 (tab level); depth=2 = L3; depth=3 = L4 (files only)
-var DRIVE_MAX_DEPTH = 3;
-function fetchFolderNode(folderId, depth) {
+// Recursively fetch a folder's files and ALL subfolders at every depth.
+// Recursion terminates naturally when a folder has no subfolders.
+// No depth cap — captures the full folder tree however deep it goes.
+function fetchFolderNode(folderId) {
   return Promise.all([
     gapi.client.drive.files.list({
       q: '"'+folderId+'" in parents and mimeType!="application/vnd.google-apps.folder" and trashed=false',
       fields: 'files(id,name,mimeType,modifiedTime,webViewLink)', orderBy: 'name', pageSize: 200
     }),
-    depth < DRIVE_MAX_DEPTH
-      ? gapi.client.drive.files.list({
-          q: '"'+folderId+'" in parents and mimeType="application/vnd.google-apps.folder" and trashed=false',
-          fields: 'files(id,name)', orderBy: 'name', pageSize: 50
-        })
-      : Promise.resolve({result: {files: []}})
+    gapi.client.drive.files.list({
+      q: '"'+folderId+'" in parents and mimeType="application/vnd.google-apps.folder" and trashed=false',
+      fields: 'files(id,name)', orderBy: 'name', pageSize: 100
+    })
   ]).then(function(results) {
     var files = results[0].result.files || [];
     var sfList = results[1].result.files || [];
     return Promise.all(sfList.map(function(sf) {
-      return fetchFolderNode(sf.id, depth + 1).then(function(contents) {
+      return fetchFolderNode(sf.id).then(function(contents) {
         return {folder: sf, files: contents.files, subFolders: contents.subFolders};
       });
     })).then(function(subFolders) {
@@ -1977,7 +1975,7 @@ function fetchSourceData(source) {
   }).then(function(resp) {
     var clientFolders = resp.result.files || [];
     return Promise.all(clientFolders.map(function(cf) {
-      return fetchFolderNode(cf.id, 0).then(function(contents) {
+      return fetchFolderNode(cf.id).then(function(contents) {
         return {folder: cf, rootFiles: contents.files, subFolders: contents.subFolders};
       });
     }));
